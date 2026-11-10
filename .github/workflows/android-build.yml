@@ -118,7 +118,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          TAIL=$(tail -c 6000 "$LOG_FILE" 2>/dev/null || echo "لا يوجد سجل")
+          # نستخرج الأخطاء الفعلية فقط: رسائل Kotlin (e:)، AAPT، وقسم What went wrong
+          {
+            echo "=== أخطاء Kotlin/AAPT ==="
+            grep -E "^(e: |error:|.*AAPT.*error|.*Execution failed|> Task .*FAILED)" "$LOG_FILE" 2>/dev/null | head -60
+            echo
+            echo "=== What went wrong ==="
+            awk '/What went wrong/{flag=1} flag{print; n++} n>40{exit}' "$LOG_FILE" 2>/dev/null
+            echo
+            echo "=== آخر 20 سطراً ==="
+            grep -v -E "^\s+at (org\.gradle|java\.|jdk\.|kotlin\.)" "$LOG_FILE" 2>/dev/null | tail -20
+          } > /tmp/excerpt.txt
+          TAIL=$(head -c 7000 /tmp/excerpt.txt)
           BODY=$(printf '### فشل بناء shadowUpload\n\n```\n%s\n```\n' "$TAIL")
           gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
             -f body="$BODY" --jq '.html_url' || echo "تعذر نشر التعليق"

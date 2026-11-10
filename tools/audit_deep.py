@@ -216,6 +216,44 @@ for f in kt_files():
         warn(f"{f}: استيراد داخلي غير مؤكد {imp}")
 
 print(f"ملفات Kotlin: {len(kt_files())} | XML: {len(trees)} | نصوص: {len(index['string'])}")
+
+# =====================================================================
+# طبقة إضافية: بقايا إعادة التسمية (أخطاء ترجمة Kotlin حقيقية)
+# كل اسم هنا كان موجوداً ثم حُذف/أُعيدت تسميته، وظهوره = خطأ compile
+# =====================================================================
+REMOVED_API = {
+    r'\.session\.get\s*\(\s*\)': 'SendHandle.session حُذف → use .future',
+    r'handle\.session\b':            'SendHandle.session حُذف → use .future',
+    r'hasFullNioFile':                'دالة محذوفة من ZeroCopyIO',
+    r'sendViaSession':                'مسار تسلسلي محذوف',
+    r'writeOnePart':                  'دالة محذوفة',
+    r'ActiveSession':                 'صنف محذوف',
+    r'generatedDensities\s*=':        'خاصية للقراءة فقط في AGP 8 → تُسبب فشل بناء',
+    r'\bresConfigs\b':              'خاصية قديمة → resourceConfigurations',
+}
+
+def _relpath(f):
+    try:
+        return os.path.relpath(f, ROOT)
+    except Exception:
+        return f
+
+def layer_removed_api():
+    for f in kt_files(SRC) + [os.path.join(ROOT,'app/build.gradle.kts')]:
+        if not os.path.exists(f): continue
+        src = open(f, encoding='utf-8').read()
+        in_comment = False
+        for i, line in enumerate(src.splitlines(), 1):
+            stripped = line.strip()
+            # تجاهل التعليقات (الشرح عن المحذوف مسموح)
+            if stripped.startswith('//') or stripped.startswith('*') or stripped.startswith('/*'):
+                continue
+            code = line.split('//')[0]
+            for pattern, why in REMOVED_API.items():
+                if re.search(pattern, code):
+                    err(f"{_relpath(f)}:{i}: بقايا API محذوف ({why})")
+layer_removed_api()
+
 print(f"\n❌ أخطاء ({len(errors)}):")
 for e in errors[:40]: print("  -",e)
 print(f"\n⚠️ تحذيرات ({len(warns)}):")

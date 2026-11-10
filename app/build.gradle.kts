@@ -23,8 +23,9 @@ android {
         // أجهزة API 21–23 قد تحتاج multidex بلا تصغير:
         // نُبقي التصغير مؤجلاً للنسخة النهائية، والمكتبات قليلة هنا
         multiDexEnabled = true
-        // منع أخطاء الموارد غير المستخدمة في نسخة التصحيح
-        vectorDrawables.generatedDensities = setOf("mdpi", "hdpi", "xhdpi", "xxhdpi")
+        // ملاحظة: generatedDensities هو MutableSet للقراءة فقط في AGP 8،
+        // وضبطُه في defaultConfig يسبب ScriptCompilationException.
+        // لا نحتاجه: مكتبة الدعم تتولى توليد كثافات PNG عند الحاجة.
     }
 
     buildTypes {

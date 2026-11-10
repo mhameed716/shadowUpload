@@ -118,7 +118,7 @@ class TransferService : Service() {
                 deviceId = app.preferences.deviceId,
                 deviceName = app.preferences.deviceName,
                 listener = listener
-            ).session.get()
+            ).future.get()
             com.shadowupload.app.ui.transfer.PendingTransfer.clear()
         }
     }

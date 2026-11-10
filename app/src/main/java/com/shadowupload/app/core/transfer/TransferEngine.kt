@@ -117,10 +117,10 @@ class TransferEngine(
     /**
      * إرسال متزامن (يحجب الخيط المستدعي — استدعِه من خيط خلفي فقط).
      *
-     * يكتشف قدرات المستقبل من أول رد:
-     *   - ACCEPT  → بروتوكول الجلسة (OFFER ثم HEADER لكل جزء على نفس الاتصال)
-     *   - FILE_RESULT/خطأ → مستقبل قديم: نعيد المحاولة ببروتوكول «اتصال لكل جزء»
-     *   - صمت تام → نستخدم مخطط الأجزاء المتوازية المباشرة
+     * مصافحة تحقق كاملة على اتصال منفصل قبل الإرسال:
+     *   - ACCEPTED → المستقبل يفهم بروتوكول shadowUpload ويقبل، نبدأ الأجزاء المتوازية
+     *   - REJECTED → رفض صريح، نُبلّغ المستخدم برسالة واضحة
+     *   - SILENT   → لا بروتوكول/جدار حماية، نفشل بوضوح بدل إرسال بلا مستقبل
      */
     fun sendBlocking(
         peerHost: String,
@@ -149,6 +149,19 @@ class TransferEngine(
             )
             listener.onFinished(failed)
             return failed
+        }
+
+        if (probe == ReceiverProtocol.SILENT) {
+            listener.onStateChanged(TransferState.FAILED)
+            val noProtocol = TransferResult(
+                success = false, filesTransferred = 0, filesFailed = sources.size,
+                totalBytes = 0L,
+                durationMillis = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L),
+                averageBytesPerSecond = 0L,
+                message = "الجهاز الآخر لا يشغّل shadowUpload أو أن المنفذ 47821 محجوب"
+            )
+            listener.onFinished(noProtocol)
+            return noProtocol
         }
 
         if (probe == ReceiverProtocol.REJECTED) {
@@ -183,7 +196,7 @@ class TransferEngine(
      * مصافحة أولية سريعة على اتصال واحد يُغلق فوراً بعدها:
      *   - ACCEPTED: المستقبل يفهم بروتوكول shadowUpload
      *   - REJECTED: الطرف الآخر رفض الاستقبال صراحةً
-     *   - SILENT:   لا رد (جدار حماية أو مستقبل قديم) → نكمل بالإرسال الذاتي
+     *   - SILENT:   لا رد (جدار حماية أو مستقبل لا يتكلم البروتوكول) → فشل واضح
      */
     private fun probeReceiver(
         host: String,
@@ -214,16 +227,18 @@ class TransferEngine(
                 )
             )
             out.flush()
-            return try {
-                when (WireProtocol.readFrame(input).type) {
-                    WireProtocol.MessageType.REJECT -> ReceiverProtocol.REJECTED
-                    WireProtocol.MessageType.ACCEPT,
-                    WireProtocol.MessageType.FILE_RESULT,
-                    WireProtocol.MessageType.HELLO_ACK -> ReceiverProtocol.ACCEPTED
-                    else -> ReceiverProtocol.SILENT
-                }
+            // المستقبل يرد ACCEPT صراحةً (أو REJECT)، وبعدها يُغلق المقبس.
+            // لا نُكمل إلا بقبول واضح: الإرسال بلا قبول يعني كتابة بيانات
+            // في اتصال سيُغلق فوراً = ضياع الملفات بصمت.
+            val reply = try {
+                WireProtocol.readFrame(input)
             } catch (_: java.io.IOException) {
-                ReceiverProtocol.SILENT
+                return ReceiverProtocol.SILENT
+            }
+            return when (reply.type) {
+                WireProtocol.MessageType.REJECT -> ReceiverProtocol.REJECTED
+                WireProtocol.MessageType.ACCEPT -> ReceiverProtocol.ACCEPTED
+                else -> ReceiverProtocol.SILENT
             }
         } finally {
             runCatching { socket.close() }

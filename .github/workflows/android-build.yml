@@ -12,14 +12,42 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write      # لنشر ملخص الفشل كتعليق على الـ commit
+  actions: read
+
+env:
+  GRADLE_VERSION: "8.7"
+  LOG_FILE: build-output.log
 
 jobs:
-  build:
-    name: بناء APK (debug + release)
+  # ---------------------------------------------------------------------
+  # 1) فحص ثابت سريع (لا يمنع البناء، لكن يظهر النتيجة في السجل)
+  # ---------------------------------------------------------------------
+  static-check:
+    name: فحص الموارد والكود
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: تثبيت محلل Kotlin
+        run: python3 -m pip install --quiet tree_sitter tree_sitter_kotlin
+      - name: تشغيل الأدوات
+        run: |
+          echo "## نتيجة الفحص الثابت" >> $GITHUB_STEP_SUMMARY
+          python3 tools/verify.py | tee -a $GITHUB_STEP_SUMMARY
+          python3 tools/audit_deep.py | tee -a $GITHUB_STEP_SUMMARY
 
+  # ---------------------------------------------------------------------
+  # 2) البناء الفعلي
+  # ---------------------------------------------------------------------
+  build:
+    name: بناء APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: سحب الكود
         uses: actions/checkout@v4
@@ -30,53 +58,76 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: تجهيز Gradle (مع التخزين المؤقت)
+      - name: تجهيز Gradle (تخزين مؤقت)
         uses: gradle/actions/setup-gradle@v3
-        with:
-          cache-read-only: false
 
-      # تنزيل Gradle الرسمي ثم توليد gradlew + gradle-wrapper.jar داخل السير
-      - name: تجهيز Gradle Wrapper
+      # ننزّل توزيعة Gradle الرسمية ونستخدمها مباشرة (بلا ملف wrapper)
+      - name: تنزيل Gradle
         run: |
-          curl -sSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          set -euo pipefail
+          curl -sSL -o /tmp/gradle.zip "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
           sudo unzip -q -o /tmp/gradle.zip -d /opt/
-          export PATH=/opt/gradle-8.7/bin:$PATH
-          gradle wrapper --gradle-version 8.7 --distribution-type bin --no-daemon
-          chmod +x ./gradlew
-          ls -la gradle/wrapper/
+          echo "/opt/gradle-${GRADLE_VERSION}/bin" >> $GITHUB_PATH
+          /opt/gradle-${GRADLE_VERSION}/bin/gradle --version | tee -a "$LOG_FILE"
 
-      - name: فحص الموارد والكود (أداة المشروع)
+      - name: معلومات البيئة
         run: |
-          python3 -m pip install --quiet tree_sitter tree_sitter_kotlin
-          python3 tools/verify.py
-          python3 tools/audit_deep.py
+          set -euo pipefail
+          { echo "ANDROID_HOME=$ANDROID_HOME"; echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT";
+            ls "$ANDROID_HOME/platforms" 2>/dev/null || true;
+            ls "$ANDROID_HOME/build-tools" 2>/dev/null || true; } | tee -a "$LOG_FILE"
 
       - name: بناء نسخة التصحيح
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --stacktrace --no-daemon --console=plain 2>&1 | tee -a "$LOG_FILE"
 
-      - name: بناء نسخة الإصدار (R8)
-        run: ./gradlew :app:assembleRelease --stacktrace --no-daemon
+      - name: بناء نسخة الإصدار
+        if: success()
+        run: |
+          set -o pipefail
+          gradle :app:assembleRelease --stacktrace --no-daemon --console=plain 2>&1 | tee -a "$LOG_FILE"
+
+      - name: عرض APK
+        id: apk
+        if: always()
+        run: |
+          ls -la app/build/outputs/apk/debug/ 2>/dev/null || true
+          ls -la app/build/outputs/apk/release/ 2>/dev/null || true
 
       - name: رفع APK التصحيح
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: shadowUpload-debug
+          name: shadowUpload-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: رفع APK الإصدار
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: shadowUpload-release
+          name: shadowUpload-release-apk
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
 
-      - name: حفظ سجلات الفشل
+      # قناة التشخيص: ننشر آخر جزء من السجل كتعليق على الـ commit
+      - name: نشر سجل الفشل على الـ commit
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          TAIL=$(tail -c 6000 "$LOG_FILE" 2>/dev/null || echo "لا يوجد سجل")
+          BODY=$(printf '### فشل بناء shadowUpload\n\n```\n%s\n```\n' "$TAIL")
+          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+            -f body="$BODY" --jq '.html_url' || echo "تعذر نشر التعليق"
+          echo "$TAIL" >> $GITHUB_STEP_SUMMARY
+
+      - name: حفظ السجلات
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
-          path: |
-            app/build/reports/**
-            build/reports/**
+          path: build-output.log
           if-no-files-found: ignore

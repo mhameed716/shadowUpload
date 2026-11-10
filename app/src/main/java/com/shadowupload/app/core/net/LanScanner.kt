@@ -89,8 +89,10 @@ class LanScanner(
             socket.soTimeout = timeoutMs
             val out = DataOutputStream(socket.getOutputStream())
             val input = DataInputStream(socket.getInputStream())
-            // نطابق بصمة البروتوكول فقط — استجابة سريعة بلا تخصيص ذاكرة كبير
+            // المصافحة الكاملة: البصمة السحرية أولاً (وإلا فسّر الخادم أول بايت
+            // من البصمة كنوع رسالة غير معروف وأغلق الاتصال)
             WireProtocol.writeMagic(out)
+            WireProtocol.readAndVerifyMagic(input)
             WireProtocol.writeFrame(
                 out,
                 WireProtocol.MessageType.HELLO,

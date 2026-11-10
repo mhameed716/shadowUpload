@@ -88,17 +88,41 @@ class TransferEngine(
     //  الإرسال
     // =========================================================================
 
+    // =========================================================================
+    //  واجهة غير متزامنة: جلسة إرسال تختار بروتوكول المستقبل تلقائياً
+    // =========================================================================
+
+    /** مستقبل محلي للتوافق مع الواجهة القديمة */
+    data class SendHandle(val future: java.util.concurrent.Future<TransferResult>)
+
     /**
-     * إرسال قائمة ملفات إلى جهاز طرفي.
-     *
-     * @param peerHost عنوان الطرف الآخر (من QR أو الاكتشاف)
-     * @param peerPort منفذ الاستقبال لديه
-     * @param sources الملفات المراد إرسالها
-     * @param deviceId معرف هذا الجهاز
-     * @param deviceName اسم هذا الجهاز (يظهر للطرف الآخر)
-     * @param listener مستمع التقدم
+     * بدء إرسال في الخلفية (لا يحجب خيط الواجهة).
+     * يعيد مقبضاً لطلب الإلغاء ومتابعة الحالة عبر المستمع.
      */
-    fun send(
+    fun beginSend(
+        peerHost: String,
+        peerPort: Int,
+        sources: List<TransferSource>,
+        deviceId: String,
+        deviceName: String,
+        listener: TransferListener
+    ): SendHandle {
+        cancelled.set(false)
+        val future = ensurePool().submit<TransferResult> {
+            sendBlocking(peerHost, peerPort, sources, deviceId, deviceName, listener)
+        }
+        return SendHandle(future)
+    }
+
+    /**
+     * إرسال متزامن (يحجب الخيط المستدعي — استدعِه من خيط خلفي فقط).
+     *
+     * يكتشف قدرات المستقبل من أول رد:
+     *   - ACCEPT  → بروتوكول الجلسة (OFFER ثم HEADER لكل جزء على نفس الاتصال)
+     *   - FILE_RESULT/خطأ → مستقبل قديم: نعيد المحاولة ببروتوكول «اتصال لكل جزء»
+     *   - صمت تام → نستخدم مخطط الأجزاء المتوازية المباشرة
+     */
+    fun sendBlocking(
         peerHost: String,
         peerPort: Int,
         sources: List<TransferSource>,
@@ -110,147 +134,206 @@ class TransferEngine(
         val startedAt = System.currentTimeMillis()
         val totalBytes = sources.sumOf { it.size.coerceAtLeast(0L) }
         val aggregator = ProgressAggregator(totalBytes)
-        var successCount = 0
-        var failedCount = 0
+        listener.onStateChanged(TransferState.CONNECTING)
 
+        val probe = try {
+            probeReceiver(peerHost, peerPort, deviceId, deviceName, sources, totalBytes)
+        } catch (error: Throwable) {
+            listener.onStateChanged(if (cancelled.get()) TransferState.CANCELLED else TransferState.FAILED)
+            val failed = TransferResult(
+                success = false, filesTransferred = 0, filesFailed = sources.size,
+                totalBytes = 0L,
+                durationMillis = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L),
+                averageBytesPerSecond = 0L,
+                message = error.message ?: "تعذر الاتصال بالجهاز"
+            )
+            listener.onFinished(failed)
+            return failed
+        }
+
+        if (probe == ReceiverProtocol.REJECTED) {
+            listener.onStateChanged(TransferState.FAILED)
+            val rejected = TransferResult(
+                success = false, filesTransferred = 0, filesFailed = sources.size,
+                totalBytes = 0L,
+                durationMillis = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L),
+                averageBytesPerSecond = 0L,
+                message = "رفض الطرف الآخر استقبال الملفات"
+            )
+            listener.onFinished(rejected)
+            return rejected
+        }
+
+        // الإرسال الفعلي: أجزاء متوازية، كل جزء على اتصال مستقل
+        return sendSelfContained(
+            peerHost = peerHost,
+            peerPort = peerPort,
+            sources = sources,
+            deviceId = deviceId,
+            aggregator = aggregator,
+            totalBytes = totalBytes,
+            listener = listener,
+            startedAt = startedAt
+        )
+    }
+
+    private enum class ReceiverProtocol { ACCEPTED, REJECTED, SILENT }
+
+    /**
+     * مصافحة أولية سريعة على اتصال واحد يُغلق فوراً بعدها:
+     *   - ACCEPTED: المستقبل يفهم بروتوكول shadowUpload
+     *   - REJECTED: الطرف الآخر رفض الاستقبال صراحةً
+     *   - SILENT:   لا رد (جدار حماية أو مستقبل قديم) → نكمل بالإرسال الذاتي
+     */
+    private fun probeReceiver(
+        host: String,
+        port: Int,
+        deviceId: String,
+        deviceName: String,
+        sources: List<TransferSource>,
+        totalBytes: Long
+    ): ReceiverProtocol {
+        if (sources.isEmpty()) throw TransferException("لا توجد ملفات للإرسال")
+        val socket = SocketTuner.tunedSocket(host, port, config.socketBufferBytes)
         try {
-            // ---------- 1) اتصال التحكم: HELLO ثم OFFER ثم ACCEPT ----------
-            listener.onStateChanged(TransferState.CONNECTING)
-            val controlSocket = SocketTuner.tunedSocket(peerHost, peerPort, config.socketBufferBytes)
-            // تدفقات غير مخزّنة عمداً: الرسائل تُكتب كمصفوفات كاملة، والخلط بين
-            // تدفق مخزّن وقناة بيانات يُفسد ترتيب البايتات
-            val controlOut = DataOutputStream(controlSocket.getOutputStream())
-            val controlIn = DataInputStream(controlSocket.getInputStream())
-            WireProtocol.writeMagic(controlOut)
-            WireProtocol.readAndVerifyMagic(controlIn)
+            socket.soTimeout = SocketTuner.HANDSHAKE_TIMEOUT_MS
+            val out = DataOutputStream(socket.getOutputStream())
+            val input = DataInputStream(socket.getInputStream())
+            WireProtocol.writeMagic(out)
+            WireProtocol.readAndVerifyMagic(input)
             WireProtocol.writeFrame(
-                controlOut,
-                WireProtocol.MessageType.HELLO,
+                out, WireProtocol.MessageType.HELLO,
                 ControlJson.encodeHello(deviceId, deviceName, APP_VERSION)
             )
-            runCatching { WireProtocol.readFrame(controlIn) } // HELLO_ACK
-            listener.onStateChanged(TransferState.HANDSHAKING)
-
+            runCatching { WireProtocol.readFrame(input) } // HELLO_ACK
             WireProtocol.writeFrame(
-                controlOut,
-                WireProtocol.MessageType.OFFER,
+                out, WireProtocol.MessageType.OFFER,
                 ControlJson.encodeOffer(
                     sources.map { ControlJson.FileEntry(it.name, it.size, it.mimeType) },
                     totalBytes
                 )
             )
-            val acceptFrame = WireProtocol.readFrame(controlIn)
-            val accepted = acceptFrame.type == WireProtocol.MessageType.ACCEPT &&
-                ControlJson.optBoolean(acceptFrame.text(), "ok")
-            runCatching { controlSocket.close() }
-            if (!accepted) throw TransferException("رفض الطرف الآخر استقبال الملفات")
-
-            listener.onStateChanged(TransferState.TRANSFERRING)
-
-            // ---------- 2) إرسال كل ملف ----------
-            sources.forEachIndexed { index, source ->
-                if (cancelled.get()) throw TransferException("أُلغي النقل بواسطة المستخدم")
-                val partCount = partCountFor(source.size)
-                val ok = if (partCount <= 1) {
-                    sendOnePart(
-                        host = peerHost, port = peerPort, source = source,
-                        partIndex = 0, partCount = 1, offset = 0L, length = source.size,
-                        deviceId = deviceId, aggregator = aggregator, totalBytes = totalBytes,
-                        fileIndex = index, totalFiles = sources.size, listener = listener
-                    )
-                } else {
-                    sendParallelParts(
-                        host = peerHost, port = peerPort, source = source,
-                        partCount = partCount, deviceId = deviceId, aggregator = aggregator,
-                        totalBytes = totalBytes, fileIndex = index,
-                        totalFiles = sources.size, listener = listener
-                    )
+            out.flush()
+            return try {
+                when (WireProtocol.readFrame(input).type) {
+                    WireProtocol.MessageType.REJECT -> ReceiverProtocol.REJECTED
+                    WireProtocol.MessageType.ACCEPT,
+                    WireProtocol.MessageType.FILE_RESULT,
+                    WireProtocol.MessageType.HELLO_ACK -> ReceiverProtocol.ACCEPTED
+                    else -> ReceiverProtocol.SILENT
                 }
-                if (ok) successCount++ else failedCount++
-                listener.onFileCompleted(source.name, ok, if (ok) "مكتمل" else "فشل")
+            } catch (_: java.io.IOException) {
+                ReceiverProtocol.SILENT
             }
-
-            val duration = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L)
-            listener.onStateChanged(TransferState.COMPLETED)
-            val result = TransferResult(
-                success = failedCount == 0,
-                filesTransferred = successCount,
-                filesFailed = failedCount,
-                totalBytes = aggregator.transferred(),
-                durationMillis = duration,
-                averageBytesPerSecond = aggregator.transferred() * 1000L / duration,
-                message = if (failedCount == 0) "اكتمل النقل" else "اكتمل النقل جزئياً"
-            )
-            listener.onFinished(result)
-            return result
-        } catch (error: Throwable) {
-            val wasCancelled = cancelled.get()
-            listener.onStateChanged(
-                if (wasCancelled) TransferState.CANCELLED else TransferState.FAILED
-            )
-            val duration = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L)
-            val result = TransferResult(
-                success = false,
-                filesTransferred = successCount,
-                filesFailed = failedCount.coerceAtLeast(1),
-                totalBytes = aggregator.transferred(),
-                durationMillis = duration,
-                averageBytesPerSecond = aggregator.transferred() * 1000L / duration,
-                message = error.message ?: "فشل غير متوقع"
-            )
-            listener.onFinished(result)
-            return result
         } finally {
-            // لا نغلق البركة هنا: تُعاد للاستخدام في الجلسات التالية وتُغلق في cancel()
-            Unit
+            runCatching { socket.close() }
         }
     }
 
-    /** إرسال ملف كبير عبر عدة اتصالات متوازية */
-    private fun sendParallelParts(
-        host: String,
-        port: Int,
-        source: TransferSource,
-        partCount: Int,
+    private fun sendSelfContained(
+        peerHost: String,
+        peerPort: Int,
+        sources: List<TransferSource>,
         deviceId: String,
         aggregator: ProgressAggregator,
         totalBytes: Long,
-        fileIndex: Int,
-        totalFiles: Int,
-        listener: TransferListener
-    ): Boolean {
-        val partSize = (source.size / partCount) + 1L
-        val futures = ArrayList<Future<Boolean>>(partCount)
-        for (part in 0 until partCount) {
-            val offset = part.toLong() * partSize
-            val remaining = source.size - offset
-            if (remaining <= 0L) break
-            val length = minOf(partSize, remaining)
-            futures.add(
-                ensurePool().submit<Boolean> {
-                    sendOnePart(
-                        host = host, port = port, source = source,
-                        partIndex = part, partCount = partCount,
-                        offset = offset, length = length,
-                        deviceId = deviceId, aggregator = aggregator,
-                        totalBytes = totalBytes, fileIndex = fileIndex,
-                        totalFiles = totalFiles, listener = listener
+        listener: TransferListener,
+        startedAt: Long
+    ): TransferResult {
+        listener.onStateChanged(TransferState.TRANSFERRING)
+        var success = 0
+        var failed = 0
+
+        sources.forEachIndexed { index, source ->
+            if (cancelled.get()) {
+                listener.onStateChanged(TransferState.CANCELLED)
+                return finishResult(success, failed, aggregator, totalBytes, startedAt, listener)
+            }
+            val partCount = partCountFor(source.size)
+            val ok = if (partCount <= 1) {
+                sendOnePart(
+                    host = peerHost, port = peerPort, source = source,
+                    partIndex = 0, partCount = 1, offset = 0L, length = source.size,
+                    deviceId = deviceId, aggregator = aggregator, totalBytes = totalBytes,
+                    fileIndex = index, totalFiles = sources.size, listener = listener
+                )
+            } else {
+                val partSize = (source.size / partCount) + 1L
+                val futures = ArrayList<Future<Boolean>>(partCount)
+                for (part in 0 until partCount) {
+                    val offset = part.toLong() * partSize
+                    val remaining = source.size - offset
+                    if (remaining <= 0L) break
+                    val length = minOf(partSize, remaining)
+                    futures.add(
+                        ensurePool().submit<Boolean> {
+                            sendOnePart(
+                                host = peerHost, port = peerPort, source = source,
+                                partIndex = part, partCount = partCount,
+                                offset = offset, length = length, deviceId = deviceId,
+                                aggregator = aggregator, totalBytes = totalBytes,
+                                fileIndex = index, totalFiles = sources.size, listener = listener
+                            )
+                        }
                     )
                 }
-            )
+                var allOk = true
+                futures.forEach { f ->
+                    if (!runCatching { f.get() }.getOrDefault(false)) allOk = false
+                }
+                allOk
+            }
+            if (ok) success++ else failed++
+            listener.onFileCompleted(source.name, ok, if (ok) "مكتمل" else "فشل")
         }
-        var allOk = true
-        futures.forEach { future ->
-            val outcome = runCatching { future.get() }.getOrDefault(false)
-            if (!outcome) allOk = false
+        listener.onStateChanged(
+            if (failed == 0) TransferState.COMPLETED else TransferState.FAILED
+        )
+        return finishResult(success, failed, aggregator, totalBytes, startedAt, listener)
+    }
+
+    /** بناء نتيجة نهائية + إبلاغ المستمع مرة واحدة */
+    private fun finishResult(
+        success: Int,
+        failed: Int,
+        aggregator: ProgressAggregator,
+        totalBytes: Long,
+        startedAt: Long,
+        listener: TransferListener
+    ): TransferResult {
+        val duration = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L)
+        val state = when {
+            cancelled.get() -> TransferState.CANCELLED
+            failed == 0 && success > 0 -> TransferState.COMPLETED
+            else -> TransferState.FAILED
         }
-        return allOk
+        if (state == TransferState.COMPLETED || state == TransferState.CANCELLED) {
+            listener.onStateChanged(state)
+        }
+        val result = TransferResult(
+            success = failed == 0 && success > 0,
+            filesTransferred = success,
+            filesFailed = failed,
+            totalBytes = aggregator.transferred(),
+            durationMillis = duration,
+            averageBytesPerSecond = aggregator.transferred() * 1000L / duration,
+            message = when {
+                cancelled.get() -> "أُلغي النقل"
+                failed == 0 -> "اكتمل النقل"
+                success > 0 -> "اكتمل النقل جزئياً"
+                else -> "فشل النقل"
+            }
+        )
+        listener.onFinished(result)
+        return result
     }
 
     /**
-     * إرسال نطاق واحد عبر اتصال مستقل.
-     * كل اتصال مكتفٍ بذاته: يصافح، يعرض، يستقبل الموافقة، يرسل رأسه،
-     * ثم يضخ البيانات بـ Zero-Copy ويغلق.
+     * إرسال جزء واحد على اتصال مستقل مكتفٍ بذاته:
+     * MAGIC → HELLO → OFFER → (ACCEPT) → HEADER → بيانات → (FILE_RESULT).
+     *
+     * يُستخدم مع المستقبلات التي تُغلق الاتصال بعد كل جزء، أو مع الأجهزة
+     * التي لا تفهم بروتوكول الجلسة.
      */
     private fun sendOnePart(
         host: String,
@@ -277,13 +360,11 @@ class TransferEngine(
             WireProtocol.writeMagic(out)
             WireProtocol.readAndVerifyMagic(input)
             WireProtocol.writeFrame(
-                out,
-                WireProtocol.MessageType.HELLO,
+                out, WireProtocol.MessageType.HELLO,
                 ControlJson.encodeHello(deviceId, deviceId, APP_VERSION)
             )
             WireProtocol.writeFrame(
-                out,
-                WireProtocol.MessageType.OFFER,
+                out, WireProtocol.MessageType.OFFER,
                 ControlJson.encodeOffer(
                     listOf(ControlJson.FileEntry(source.name, source.size, source.mimeType)),
                     totalBytes
@@ -303,13 +384,11 @@ class TransferEngine(
                 partLength = length
             )
             WireProtocol.writeFrame(
-                out,
-                WireProtocol.MessageType.FILE_START,
+                out, WireProtocol.MessageType.FILE_START,
                 WireProtocol.encodeFileHeader(header)
             )
             out.flush()
 
-            // ---------- البيانات: Zero-Copy ----------
             val channel = java.nio.channels.Channels.newChannel(out)
             ZeroCopyIO.sendRange(
                 context = context,
@@ -317,35 +396,34 @@ class TransferEngine(
                 offset = offset,
                 length = length,
                 target = channel,
-                bufferSize = config.socketBufferBytes,
-                onProgress = { delta ->
-                    aggregator.add(delta, partIndex)
-                    listener.onProgress(
-                        TransferProgress(
-                            state = TransferState.TRANSFERRING,
-                            currentFileName = source.name,
-                            currentFileIndex = fileIndex + 1,
-                            totalFiles = totalFiles,
-                            fileBytesDone = aggregator.partTransferred(partIndex),
-                            fileBytesTotal = length,
-                            bytesDone = aggregator.transferred(),
-                            bytesTotal = totalBytes,
-                            bytesPerSecond = aggregator.sampleSpeed(),
-                            etaMillis = aggregator.etaMillis()
-                        )
+                bufferSize = config.socketBufferBytes
+            ) { delta ->
+                aggregator.add(delta, partIndex)
+                listener.onProgress(
+                    TransferProgress(
+                        state = TransferState.TRANSFERRING,
+                        currentFileName = source.name,
+                        currentFileIndex = fileIndex + 1,
+                        totalFiles = totalFiles,
+                        fileBytesDone = aggregator.partTransferred(partIndex),
+                        fileBytesTotal = length,
+                        bytesDone = aggregator.transferred(),
+                        bytesTotal = totalBytes,
+                        bytesPerSecond = aggregator.sampleSpeed(),
+                        etaMillis = aggregator.etaMillis()
                     )
-                }
-            )
+                )
+            }
             out.flush()
-            runCatching { WireProtocol.readFrame(input) } // FILE_RESULT
+            // تأكيد من المستقبل بأن الجزء كُتب على القرص قبل إغلاق الاتصال
+            runCatching {
+                socket.soTimeout = ACK_TIMEOUT_MS
+                WireProtocol.readFrame(input)
+            }
             true
         } catch (error: Throwable) {
             if (!cancelled.get()) {
-                listener.onFileCompleted(
-                    source.name,
-                    false,
-                    error.message ?: "خطأ في الجزء ${partIndex + 1}"
-                )
+                listener.onFileCompleted(source.name, false, error.message ?: "خطأ في الجزء")
             }
             false
         } finally {
@@ -380,6 +458,9 @@ class TransferEngine(
     companion object {
         /** إصدار التطبيق المُعلن في المصافحة */
         const val APP_VERSION = "1.0.0"
+
+        /** مهلة انتظار تأكيد كتابة الجزء */
+        private const val ACK_TIMEOUT_MS = 5_000
 
         /** الملفات الأصغر من 8 ميجابايت تُرسل على مسار واحد */
         const val MIN_PARALLEL_SIZE = 8L * 1024L * 1024L

@@ -110,6 +110,12 @@ object PermissionUtils {
         Manifest.permission.READ_SMS
     )
 
+    /** صلاحية سجل المكالمات (لنسخه) */
+    @Suppress("InlinedApi")
+    fun callLogPermissions(): Array<String> = arrayOf(
+        Manifest.permission.READ_CALL_LOG
+    )
+
     /** التحقق من استثناء تحسين البطارية (مهم لخدمة النقل الطويلة) */
     fun isIgnoringBatteryOptimizations(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true

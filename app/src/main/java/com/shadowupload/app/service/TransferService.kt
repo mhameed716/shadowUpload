@@ -26,6 +26,7 @@ import com.shadowupload.app.data.model.TransferState
 import com.shadowupload.app.data.model.TransferRecord
 import com.shadowupload.app.data.repo.MediaRepository
 import com.shadowupload.app.ui.transfer.TransferProgressActivity
+import com.shadowupload.app.util.FormatUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -67,6 +68,10 @@ class TransferService : Service() {
         app = application as ShadowUploadApp
         engine = TransferEngine(this, app.preferences.snapshot())
         createNotificationChannel()
+        // إعادة بناء المحرك عند أي تغيير في الإعدادات كي تُطبَّق فوراً
+        app.preferences.registerListener {
+            runCatching { engine = TransferEngine(this, app.preferences.snapshot()) }
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -74,10 +79,69 @@ class TransferService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START_RECEIVE -> startReceiving()
+            ACTION_SEND -> {
+                // الإرسال يُنفَّذ هنا لأن الخدمة هي التي تحمل دورة الحياة الآمنة
+                val host = intent.getStringExtra(EXTRA_HOST) ?: return START_NOT_STICKY
+                startSending(host, intent.getStringExtra(EXTRA_PORT)?.toIntOrNull()
+                    ?: app.preferences.receivePort)
+            }
             ACTION_STOP -> stopEverything()
         }
         return START_NOT_STICKY
     }
+
+    /**
+     * إرسال ملفات إلى جهاز: يُشغّل محرك النقل على بركة الخدمة.
+     * الملفات تُقرأ من PendingTransfer (لا تُمرَّر عبر Intent لتفادي حد الحجم).
+     */
+    private fun startSending(host: String, port: Int) {
+        val items = com.shadowupload.app.ui.transfer.PendingTransfer.items
+        if (items.isEmpty()) {
+            _progress.postValue(
+                TransferProgress(state = TransferState.FAILED, message = getString(R.string.transfer_hub_action))
+            )
+            return
+        }
+        startedAt = System.currentTimeMillis()
+        currentDirection = TransferDirection.SEND
+        completedFiles = 0
+        sampleFileName = ""
+        ensureForeground(getString(R.string.transfer_starting))
+
+        val engine = TransferEngine(this, app.preferences.snapshot())
+        val sources = com.shadowupload.app.ui.transfer.SendCoordinator.toSources(this, items)
+        scope.launch {
+            engine.beginSend(
+                peerHost = host,
+                peerPort = port,
+                sources = sources,
+                deviceId = app.preferences.deviceId,
+                deviceName = app.preferences.deviceName,
+                listener = listener
+            ).session.get()
+            com.shadowupload.app.ui.transfer.PendingTransfer.clear()
+        }
+    }
+
+    /** يضمن تشغيل الخدمة في المقدمة بأمان على كل الإصدارات */
+    private fun ensureForeground(text: String) {
+        val notification = buildNotification(text, 0)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                } else {
+                    0
+                }
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+
 
     // ================= الاستقبال =================
 
@@ -88,7 +152,7 @@ class TransferService : Service() {
         currentDirection = TransferDirection.RECEIVE
         completedFiles = 0
         sampleFileName = ""
-        startForeground(NOTIFICATION_ID, buildNotification(getString(R.string.transfer_preparing), 0))
+        ensureForeground(getString(R.string.transfer_preparing))
         _progress.postValue(TransferProgress(state = TransferState.WAITING_PEER))
 
         val destination = MediaRepository(this).receivedFolder()
@@ -240,7 +304,7 @@ class TransferService : Service() {
                         R.string.transfer_completed_summary,
                         result.filesTransferred,
                         FormatUtils.formatSize(result.totalBytes),
-                        FormatUtils.formatDuration(result.durationMillis)
+                        FormatUtils.shortDuration(result.durationMillis)
                     )
                 } else {
                     getString(R.string.transfer_failed)
@@ -257,6 +321,7 @@ class TransferService : Service() {
     }
 
     override fun onDestroy() {
+        app.preferences.unregisterListener()
         runCatching { receiveSession?.stop() }
         notifyExecutor.shutdownNow()
         scope.cancel()
@@ -267,7 +332,23 @@ class TransferService : Service() {
         private const val CHANNEL_ID = "shadowupload_transfer"
         private const val NOTIFICATION_ID = 4782
         const val ACTION_START_RECEIVE = "com.shadowupload.app.action.START_RECEIVE"
+        const val ACTION_SEND = "com.shadowupload.app.action.SEND"
         const val ACTION_STOP = "com.shadowupload.app.action.STOP"
+        const val EXTRA_HOST = "extra_host"
+        const val EXTRA_PORT = "extra_port"
+
+        /** تشغيل الإرسال في الخدمة (دورة حياة آمنة) */
+        fun startSend(context: Context, host: String, port: Int) {
+            val intent = Intent(context, TransferService::class.java)
+                .setAction(ACTION_SEND)
+                .putExtra(EXTRA_HOST, host)
+                .putExtra(EXTRA_PORT, port)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
 
         /** تشغيل الخدمة من أي مكان */
         fun startReceiving(context: Context) {

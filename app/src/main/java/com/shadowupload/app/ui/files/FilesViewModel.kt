@@ -33,6 +33,14 @@ class FilesViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedCount = MutableLiveData(0)
     val selectedCount: LiveData<Int> = _selectedCount
 
+    /** جذر SAF الذي اختاره المستخدم (بديل «كل الملفات») */
+    private var safRoot: android.net.Uri? = null
+
+    fun setSafRoot(uri: android.net.Uri) {
+        safRoot = uri
+        loadCategory(FileCategory.STORAGE, force = true)
+    }
+
     /** نص البحث الحالي (يُعرض في كل التصنيفات) */
     var query: String = ""
         private set
@@ -60,7 +68,12 @@ class FilesViewModel(application: Application) : AndroidViewModel(application) {
                 if (!force && cache.containsKey(category)) {
                     cache.getValue(category)
                 } else {
-                    repository.loadCategory(category).also { cache[category] = it }
+                    val loaded = when {
+                        category == FileCategory.STORAGE && safRoot != null ->
+                            repository.browseDocumentTree(safRoot!!)
+                        else -> repository.loadCategory(category)
+                    }
+                    loaded.also { cache[category] = it }
                 }
             }
             val current = _itemsByCategory.value.orEmpty().toMutableMap()

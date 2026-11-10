@@ -65,6 +65,15 @@ object FormatUtils {
         }
     }
 
+    /** مدة قصيرة جداً للإشعارات: ٣ ث أو ١ د ٢٠ ث */
+    fun shortDuration(millis: Long): String {
+        val totalSeconds = TimeUnit.MILLISECONDS.toSeconds(millis).coerceAtLeast(0L)
+        return when {
+            totalSeconds < 60 -> "$totalSeconds ث"
+            else -> "${totalSeconds / 60} د ${totalSeconds % 60} ث"
+        }
+    }
+
     /** نسبة مئوية مقروءة */
     fun formatPercent(value: Float): String = "${value.coerceIn(0f, 100f).toInt()}%"
 

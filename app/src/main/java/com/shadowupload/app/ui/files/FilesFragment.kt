@@ -52,6 +52,21 @@ class FilesFragment : Fragment() {
         viewModel.refreshAll()
     }
 
+    /** اختيار مجلد عبر SAF: البديل الرسمي لصلاحية «كل الملفات» */
+    private val folderPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { treeUri ->
+        if (treeUri == null) return@registerForActivityResult
+        runCatching {
+            requireContext().contentResolver.takePersistableUriPermission(
+                treeUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }
+        viewModel.setSafRoot(treeUri)
+        UiUtils.snack(binding.root, R.string.files_storage_internal)
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -146,6 +161,13 @@ class FilesFragment : Fragment() {
                 .setPositiveButton(R.string.files_open_settings) { _, _ ->
                     viewModel.markAllFilesPrompted()
                     PermissionUtils.requestAllFilesAccess(requireActivity(), REQUEST_ALL_FILES)
+                }
+                .setNeutralButton(R.string.action_open) { _, _ ->
+                    runCatching {
+                        folderPickerLauncher.launch(null)
+                    }.onFailure {
+                        UiUtils.snack(binding.root, R.string.error_generic)
+                    }
                 }
                 .setNegativeButton(R.string.perm_later, null)
                 .show()

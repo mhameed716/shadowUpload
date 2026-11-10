@@ -14,6 +14,24 @@ class AppPreferences(context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
+    /** مستمع تغييرات الإعدادات (تستخدمه خدمة النقل لإعادة بناء المحرك) */
+    private var settingsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
+
+    fun registerListener(onChanged: () -> Unit) {
+        unregisterListener()
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            // نتجاهل تغيير الاسم: لا يؤثر على إعدادات المحرك
+            if (key != KEY_DEVICE_NAME && key != KEY_ALL_FILES_PROMPTED) onChanged()
+        }
+        settingsListener = listener
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+    }
+
+    fun unregisterListener() {
+        settingsListener?.let { prefs.unregisterOnSharedPreferenceChangeListener(it) }
+        settingsListener = null
+    }
+
     // ============ اسم الجهاز ============
     var deviceName: String
         get() = prefs.getString(KEY_DEVICE_NAME, null)
@@ -97,6 +115,14 @@ class AppPreferences(context: Context) {
         maxSpeedMode = maxSpeedMode,
         receivePort = receivePort
     )
+
+    /**
+     * تغيير اسم الجهاز وانتظار الكتابة فعلياً.
+     * (commit لا apply) لأن انعكاس اسم الجهاز فوراً في QR والمصافحة يحتاج
+     * القيمة محفوظة قبل القراءة التالية على خيط آخر.
+     */
+    fun commitDeviceName(value: String): Boolean =
+        prefs.edit().putString(KEY_DEVICE_NAME, value.trim()).commit()
 
     /** استعادة الإعدادات الافتراضية */
     fun resetToDefaults() {

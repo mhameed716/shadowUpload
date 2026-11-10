@@ -13,6 +13,7 @@ import com.shadowupload.app.data.repo.HistoryRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * منسق الإرسال: يحوّل عناصر الملفات إلى مصادر نقل، يبحث عن الجهاز الهدف،
@@ -68,8 +69,14 @@ object SendCoordinator {
         }
     }
 
-    /** إرسال قائمة عناصر إلى جهاز والعودة بالنتيجة */
-    fun sendTo(
+    /**
+     * إرسال قائمة عناصر إلى جهاز.
+     *
+     * دالة suspend تُنفّذ محرك النقل على Dispatchers.IO تلقائياً، فلا تُجمّد
+     * الواجهة أبداً (كانت النسخة السابقة محجبة وتُسبب ANR عند استدعائها
+     * من خيط رئيسي).
+     */
+    suspend fun sendTo(
         context: Context,
         host: String,
         port: Int,
@@ -77,7 +84,7 @@ object SendCoordinator {
         deviceId: String,
         deviceName: String,
         listener: TransferListener
-    ) {
+    ): TransferResult? = withContext(Dispatchers.IO) {
         val app = context.applicationContext as com.shadowupload.app.ShadowUploadApp
         val engine = com.shadowupload.app.core.transfer.TransferEngine(
             context,
@@ -97,9 +104,10 @@ object SendCoordinator {
                     message = "لا توجد ملفات قابلة للإرسال"
                 )
             )
-            return
+            return@withContext null
         }
-        engine.send(
+        // beginSend لا يحجب، و.nsession.get() ينتظر النتيجة على هذا الخيط الخلفي
+        val handle = engine.beginSend(
             peerHost = host,
             peerPort = port,
             sources = sources,
@@ -107,6 +115,13 @@ object SendCoordinator {
             deviceName = deviceName,
             listener = listener
         )
+        runCatching { handle.future.get() }.getOrNull()
+    }
+
+    /** إرسال عبر خدمة النقل (يبقى حياً لو خرج المستخدم من الشاشة) */
+    fun sendViaService(context: Context, host: String, port: Int, items: List<FileItem>) {
+        PendingTransfer.items = items
+        com.shadowupload.app.service.TransferService.startSend(context, host, port)
     }
 
     /** حفظ نتيجة الإرسال في السجل */

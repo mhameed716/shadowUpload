@@ -1,6 +1,5 @@
 package com.shadowupload.app
 
-import android.app.Application
 import android.content.res.Configuration
 import com.shadowupload.app.data.prefs.AppPreferences
 import com.shadowupload.app.data.repo.HistoryRepository
@@ -13,7 +12,7 @@ import java.util.Locale
  *  - بدء كل الشاشات من اليمين إلى اليسار.
  *  - بقاء أسماء المجلدات والقيم الرقمية سليمة.
  */
-class ShadowUploadApp : Application() {
+class ShadowUploadApp : android.multidex.MultiDexApplication() {
 
     lateinit var preferences: AppPreferences
         private set

@@ -19,6 +19,10 @@ android {
         // دعم كامل لـ RTL (العربية) دون الحاجة لملفات موارد منفصلة
         resConfigs += listOf("ar", "en")
         vectorDrawables.useSupportLibrary = true
+
+        // أجهزة API 21–23 قد تحتاج multidex بلا تصغير:
+        // نُبقي التصغير مؤجلاً للنسخة النهائية، والمكتبات قليلة هنا
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -91,6 +95,8 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.documentfile:documentfile:1.0.1")
+    // multidex لأجهزة أندرويد 5 (API 21) عند تجاوز 64 ألف دالة
+    implementation("androidx.multidex:multidex:2.0.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // مكونات واجهة Material 3 (تعمل مع AppCompat على API 21)

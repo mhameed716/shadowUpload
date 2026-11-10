@@ -131,139 +131,42 @@ class QrShareActivity : BaseActivity() {
             binding.pbQrBusy.visibility = View.GONE
         } else {
             binding.pbQrBusy.visibility = View.VISIBLE
-        }
-        binding.tvQrToken.text = "$uri"
-        startCountdown(newToken)
-    }
-
-    private fun startCountdown(current: HandshakeToken.Token) {
-        countdown?.cancel()
-        val total = (current.expiresAt - System.currentTimeMillis()).coerceAtLeast(1L)
-        countdown = object : CountDownTimer(total, 1000L) {
-            override fun onTick(millisUntilFinished: Long) {
-                val seconds = (millisUntilFinished / 1000L).toInt()
-                binding.tvQrExpiry.text = getString(R.string.qr_expires_in, seconds)
-            }
-
-            override fun onFinish() {
-                binding.tvQrExpiry.setText(R.string.qr_invalid)
-            }
-        }.start()
-    }
-
-    private fun copyToken() {
-        val current = token ?: return
-        val uri = HandshakeToken.buildUri(current.host, current.port, current.code)
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-        clipboard.setPrimaryClip(ClipData.newPlainText("shadowUpload", uri))
-        UiUtils.snack(binding.root, R.string.qr_link_copied)
-    }
-
-    // ================= المسح =================
-
-    private fun requestScanner() {
-        if (PermissionUtils.isGranted(this, Manifest.permission.CAMERA)) {
-            startScanner()
-        } else {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
-
-    private fun startScanner() {
-        val container = binding.scanContainer
-        container.removeAllViews()
-        val previewView = PreviewView(this).apply {
-            layoutParams = android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        }
-        container.addView(previewView)
-
-        val providerFuture = ProcessCameraProvider.getInstance(this)
-        providerFuture.addListener({
-            runCatching {
-                val provider = providerFuture.get()
-                cameraProvider = provider
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
+            // sendTo دالة suspend تنفّذ النقل على خيط الإدخال/الإخراج
+            val result = com.shadowupload.app.ui.transfer.SendCoordinator.sendTo(
+                context = this@QrShareActivity,
+                host = peer.ip,
+                port = peer.port,
+                items = pending,
+                deviceId = app.preferences.deviceId,
+                deviceName = app.preferences.deviceName,
+                listener = object : com.shadowupload.app.core.transfer.TransferListener {
+                    override fun onProgress(progress: com.shadowupload.app.data.model.TransferProgress) {
+                        val text = com.shadowupload.app.util.FormatUtils.formatSpeed(progress.bytesPerSecond)
+                        runOnUiThread {
+                            if (isAliveBinding()) binding.tvQrExpiry.text = text
+                        }
+                    }
                 }
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                analysis.setAnalyzer(analyzerExecutor) { imageProxy ->
-                    analyzeFrame(imageProxy)
-                }
-                provider.unbindAll()
-                provider.bindToLifecycle(
-                    this,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview,
-                    analysis
-                )
-            }.onFailure {
-                UiUtils.snack(binding.root, R.string.qr_camera_unavailable)
-            }
-        }, ContextCompat.getMainExecutor(this))
-    }
-
-    /** تحليل إطار الكاميرا بحثاً عن رمز QR */
-    private fun analyzeFrame(imageProxy: ImageProxy) {
-        try {
-            val data = imageProxy.planes[0].buffer
-            val bytes = ByteArray(data.remaining())
-            data.get(bytes)
-            val source = PlanarYUVLuminanceSource(
-                bytes,
-                imageProxy.width,
-                imageProxy.height,
-                0,
-                0,
-                imageProxy.width,
-                imageProxy.height,
-                false
             )
-            val bitmap = BinaryBitmap(HybridBinarizer(source))
-            val result = runCatching {
-                MultiFormatReader().decodeWithState(bitmap)
-            }.getOrNull()
-            val text = result?.text
-            if (text != null) {
-                runOnUiThread { handleScannedCode(text) }
-            }
-        } finally {
-            imageProxy.close()
-        }
-    }
-
-    private fun handleScannedCode(raw: String) {
-        val parsed = HandshakeToken.parseUri(raw)
-        if (parsed == null) {
-            UiUtils.snack(binding.root, R.string.qr_invalid)
-            return
-        }
-        stopScanner()
-        binding.tvHandshake.visibility = View.VISIBLE
-        binding.tvHandshake.setText(R.string.qr_handshake)
-
-        // قياس زمن المصافحة الفعلي: نقيس من لحظة المسح حتى أول استجابة
-        val startedAt = System.nanoTime()
-        // نستخدم نطاق دورة حياة الشاشة لتفادي التسريب بعد الإغلاق
-        lifecycleScope.launch {
-            val reachable = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                com.shadowupload.app.core.net.LanScanner(parsed.port, 300).probeHost(parsed.host)
-            }
-            val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
-            if (isAliveBinding()) {
-                if (reachable != null) {
-                    binding.tvHandshake.text = getString(
-                        R.string.qr_handshake_done,
-                        elapsedMs.toInt()
-                    )
+            if (!isAliveBinding()) return@launch
+            binding.pbQrBusy.visibility = View.GONE
+            if (result != null) {
+                binding.tvHandshake.text = if (result.success) {
+                    getString(R.string.transfer_done)
                 } else {
-                    binding.tvHandshake.setText(R.string.join_failed)
+                    getString(R.string.transfer_failed) + " — " + result.message
                 }
+                com.shadowupload.app.ui.transfer.SendCoordinator.persistResult(
+                    scope = lifecycleScope,
+                    repository = app.historyRepository,
+                    result = result,
+                    peerName = peer.name,
+                    sampleName = pending.firstOrNull()?.name.orEmpty()
+                )
+            } else {
+                binding.tvHandshake.setText(R.string.transfer_failed)
             }
+            com.shadowupload.app.ui.transfer.PendingTransfer.clear()
         }
     }
 

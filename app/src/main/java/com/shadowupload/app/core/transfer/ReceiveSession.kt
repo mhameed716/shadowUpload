@@ -59,6 +59,7 @@ class ReceiveSession(
     private val totalReceived = AtomicLong(0L)
     private val filesCompleted = AtomicInteger(0)
     private val aggregator = ProgressAggregator(0L)
+    private val fileRegistryLock = Any()
     private val lastPeerName = AtomicReference("جهاز قريب")
     private var sessionStartedAt = System.currentTimeMillis()
 
@@ -198,28 +199,39 @@ class ReceiveSession(
         val safeName = WireProtocol.sanitizeFileName(header.name)
         val partCount = header.partCount.coerceAtLeast(1)
 
-        val target = activeFiles.getOrPut(safeName) {
-            val destination = resolveDestination(safeName)
-            totalExpected.addAndGet(header.size)
-            DestinationFile(
-                file = destination,
-                expectedSize = header.size,
-                partCount = partCount
-            )
+        // تسجيل ذري للملف: getOrPut على ConcurrentHashMap غير ذرية على API 21،
+        // وقد يؤدي تسابق مسارين إلى ملفين مختلفين على القرص فلا يكتمل أيٌّ منهما
+        var target = activeFiles[safeName]
+        if (target == null) {
+            synchronized(fileRegistryLock) {
+                target = activeFiles[safeName]
+                if (target == null) {
+                    val destination = resolveDestination(safeName)
+                    totalExpected.addAndGet(header.size)
+                    val created = DestinationFile(
+                        file = destination,
+                        expectedSize = header.size,
+                        partCount = partCount
+                    )
+                    activeFiles[safeName] = created
+                    target = created
+                }
+            }
         }
+        val destinationFile = target!!
 
         val partLength = when {
             header.partLength >= 0L -> header.partLength
             else -> header.size
         }
         val written = ZeroCopyIO.receiveRangeFromStream(
-            destination = target.file,
+            destination = destinationFile.file,
             offset = header.offset,
             length = partLength,
             source = input,
             bufferSize = config.socketBufferBytes
         ) { delta ->
-            target.receivedBytes.addAndGet(delta)
+            destinationFile.receivedBytes.addAndGet(delta)
             val all = totalReceived.addAndGet(delta)
             aggregator.add(delta)
             listener.onProgress(
@@ -228,8 +240,8 @@ class ReceiveSession(
                     currentFileName = safeName,
                     currentFileIndex = filesCompleted.get() + 1,
                     totalFiles = maxOf(activeFiles.size, 1),
-                    fileBytesDone = target.receivedBytes.get(),
-                    fileBytesTotal = target.expectedSize,
+                    fileBytesDone = destinationFile.receivedBytes.get(),
+                    fileBytesTotal = destinationFile.expectedSize,
                     bytesDone = all,
                     bytesTotal = maxOf(totalExpected.get(), all),
                     bytesPerSecond = aggregator.sampleSpeed(),
@@ -238,9 +250,12 @@ class ReceiveSession(
             )
         }
 
-        target.receivedParts.add(header.partIndex)
-        val allPartsDone = target.receivedParts.size >= target.partCount
-        val sizeOk = target.file.length() >= target.expectedSize
+        destinationFile.receivedParts.add(header.partIndex)
+        // ملاحظة دقة: هنا قد يكون آخر جزء ما زال يكتب على مسار آخر، فيبدو
+        // الحجم أصغر من المتوقع للحظات. لا ننهي الجلسة إلا عند اكتمال آخر جزء
+        // (كل مسار يتحقق بنفسه من receivedParts)، وقياس الحجم يعود للنهاية.
+        val allPartsDone = destinationFile.receivedParts.size >= destinationFile.partCount
+        val sizeOk = destinationFile.file.length() >= destinationFile.expectedSize
 
         if (allPartsDone && sizeOk) {
             activeFiles.remove(safeName)
@@ -249,7 +264,7 @@ class ReceiveSession(
             var verified = true
             if (config.verifyChecksums && !header.checksumSha256.isNullOrBlank()) {
                 listener.onStateChanged(TransferState.VERIFYING)
-                val actual = ChecksumUtils.sha256OfFile(target.file)
+                val actual = ChecksumUtils.sha256OfFile(destinationFile.file)
                 verified = actual != null && actual.equals(header.checksumSha256, ignoreCase = true)
             }
             listener.onFileCompleted(

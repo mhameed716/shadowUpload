@@ -71,7 +71,7 @@ class MeFragment : Fragment() {
             binding.etDeviceName.setText(app.preferences.deviceName)
             return
         }
-        app.preferences.deviceName = name
+        app.preferences.commitDeviceName(name)
         UiUtils.snack(binding.root, R.string.settings_saved)
     }
 

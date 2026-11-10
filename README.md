@@ -149,6 +149,15 @@
 python3 tools/verify.py               # فحص الموارد والكود (بلا Gradle)
 ```
 
+### الفحص الشامل
+
+```bash
+python3 tools/verify.py        # 12 طبقة: موارد/مراجع/صياغة/وسائط
+python3 tools/audit_deep.py    # تدقيق معمّق: تكرار، SAF، وسائط، توازن
+```
+
+تقرير آخر فحص كامل (14 عطلاً أُصلح، منها 4 حرجة): **[docs/AUDIT-REPORT.md](docs/AUDIT-REPORT.md)**
+
 > **ملاحظة صادقة:** لم يُنفَّذ بناء Gradle داخل بيئة التسليم هذه لعدم توفر
 > JDK/Android SDK فيها. التحقق تم بأداة `tools/verify.py` التي تفحص:
 > صحة XML، كل مراجع `@drawable/@color/@string/@style/@dimen/@layout/@xml/@mipmap/@menu/@anim`،
@@ -165,6 +174,7 @@ app/src/main/java/com/shadowupload/app/
 │   ├── net/        WireProtocol · SocketTuner · TransferEngine · LanScanner
 │   │               HandshakeToken · QrUtils · ControlJson · ProgressAggregator
 │   ├── transfer/   ZeroCopyIO · TransferEngine · ReceiveSession · ChecksumUtils
+│   ├── clone/      CloneExporter (vCard/JSON)
 │   └── discovery/  WifiDirectManager
 ├── data/
 │   ├── model/      FileItem · TransferProgress · TransferRecord · TransportConfig

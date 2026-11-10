@@ -2,6 +2,7 @@ package com.shadowupload.app.ui.clone
 
 import android.os.Bundle
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.shadowupload.app.R
 import com.shadowupload.app.data.model.CloneItem
@@ -72,10 +73,44 @@ class CloneActivity : BaseActivity() {
      * بدء النسخ: تصدير العناصر المختارة إلى ملفات، البحث عن الجهاز الهدف
      * على الشبكة، ثم الإرسال بمحرك النقل نفسه.
      */
+    /**
+     * الصلاحيات المطلوبة حسب العناصر المختارة — تُطلب قبل البدء
+     * حتى لا يفشل التصدير بصمت على أندرويد 6+.
+     */
+    private fun requiredPermissions(selected: Set<CloneItem>): Array<String> {
+        val needed = mutableListOf<String>()
+        if (CloneItem.CONTACTS in selected) {
+            needed += com.shadowupload.app.util.PermissionUtils.contactsPermissions()
+        }
+        if (CloneItem.SMS in selected) {
+            needed += com.shadowupload.app.util.PermissionUtils.smsPermissions()
+        }
+        if (CloneItem.CALL_LOG in selected) {
+            needed += com.shadowupload.app.util.PermissionUtils.callLogPermissions()
+        }
+        return needed.filterNot {
+            com.shadowupload.app.util.PermissionUtils.isGranted(requireContext(), it)
+        }.toTypedArray()
+    }
+
+    private val clonePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted ->
+        // نكمل بالعناصر التي مُنحت صلاحياتها فقط
+        if (granted.values.any { it }) startClone() else {
+            if (_binding != null) UiUtils.snack(binding.root, R.string.error_permission)
+        }
+    }
+
     private fun startClone() {
         val chosen = selections.filterValues { it.cbCloneOption.isChecked }.keys
         if (chosen.isEmpty()) {
             UiUtils.snack(binding.root, R.string.clone_nothing_selected)
+            return
+        }
+        val missing = requiredPermissions(chosen)
+        if (missing.isNotEmpty()) {
+            clonePermissionLauncher.launch(missing)
             return
         }
         binding.btnStartClone.isEnabled = false
@@ -134,48 +169,39 @@ class CloneActivity : BaseActivity() {
                 return@launch
             }
 
-            // 4) الإرسال الفعلي على خيط الخلفية (المستمع يستدعى من خيط النقل)
+            // 4) الإرسال الفعلي (sendTo غير محجبة للواجهة)
             UiUtils.snack(binding.root, R.string.clone_started)
             binding.btnStartClone.setText(R.string.transfer_title)
-            val result = withContext(Dispatchers.IO) {
-                var outcome: com.shadowupload.app.core.transfer.TransferResult? = null
-                com.shadowupload.app.ui.transfer.SendCoordinator.sendTo(
-                    context = this@CloneActivity,
-                    host = peer.ip,
-                    port = peer.port,
-                    items = export.files,
-                    deviceId = app.preferences.deviceId,
-                    deviceName = app.preferences.deviceName,
-                    listener = object : com.shadowupload.app.core.transfer.TransferListener {
-                        override fun onProgress(progress: com.shadowupload.app.data.model.TransferProgress) {
-                            val text = FormatUtils.formatPercent(progress.percent) + " • " +
-                                FormatUtils.formatSpeed(progress.bytesPerSecond)
-                            runOnUiThread {
-                                if (_binding != null) binding.tvEstimatedSize.text = text
-                            }
-                        }
-
-                        override fun onFinished(done: com.shadowupload.app.core.transfer.TransferResult) {
-                            outcome = done
+            val result = com.shadowupload.app.ui.transfer.SendCoordinator.sendTo(
+                context = this@CloneActivity,
+                host = peer.ip,
+                port = peer.port,
+                items = export.files,
+                deviceId = app.preferences.deviceId,
+                deviceName = app.preferences.deviceName,
+                listener = object : com.shadowupload.app.core.transfer.TransferListener {
+                    override fun onProgress(progress: com.shadowupload.app.data.model.TransferProgress) {
+                        val text = FormatUtils.formatPercent(progress.percent) + " • " +
+                            FormatUtils.formatSpeed(progress.bytesPerSecond)
+                        runOnUiThread {
+                            if (_binding != null) binding.tvEstimatedSize.text = text
                         }
                     }
-                )
-                outcome
-            }
+                }
+            )
             if (_binding == null) return@launch
             binding.btnStartClone.isEnabled = true
             binding.btnStartClone.setText(R.string.clone_start)
-            val finished = result
-            if (finished != null) {
+            if (result != null) {
                 UiUtils.snack(
                     binding.root,
-                    if (finished.success) getString(R.string.transfer_done)
-                    else getString(R.string.transfer_failed) + " — " + finished.message
+                    if (result.success) getString(R.string.transfer_done)
+                    else getString(R.string.transfer_failed) + " — " + result.message
                 )
                 com.shadowupload.app.ui.transfer.SendCoordinator.persistResult(
                     scope = lifecycleScope,
                     repository = app.historyRepository,
-                    result = finished,
+                    result = result,
                     peerName = peer.name,
                     sampleName = export.files.firstOrNull()?.name.orEmpty()
                 )

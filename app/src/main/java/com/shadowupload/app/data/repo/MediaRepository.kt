@@ -272,6 +272,33 @@ class MediaRepository(private val context: Context) {
         items.sortedWith(compareByDescending<FileItem> { it.isDirectory }.thenBy { it.name })
     }
 
+    /**
+     * تصفح مجلد عبر SAF (DocumentFile) — يعمل على أندرويد 11+ بدون
+     * MANAGE_EXTERNAL_STORAGE، ويمنح وصولاً لمجلدات اختارها المستخدم.
+     */
+    suspend fun browseDocumentTree(treeUri: Uri): List<FileItem> = withContext(Dispatchers.IO) {
+        val items = mutableListOf<FileItem>()
+        val root = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, treeUri)
+            ?: return@withContext items
+        val children = runCatching { root.listFiles() }.getOrNull() ?: return@withContext items
+        children.forEach { doc ->
+            items.add(
+                FileItem(
+                    id = doc.uri.toString(),
+                    uri = doc.uri,
+                    path = null,
+                    name = doc.name ?: "بدون اسم",
+                    size = if (doc.isDirectory) 0L else doc.length(),
+                    mimeType = doc.type,
+                    lastModified = doc.lastModified(),
+                    isDirectory = doc.isDirectory,
+                    category = FileCategory.STORAGE
+                )
+            )
+        }
+        items.sortedWith(compareByDescending<FileItem> { it.isDirectory }.thenBy { it.name })
+    }
+
     /** تصنيف مبسط حسب الامتداد */
     fun guessMime(name: String): String {
         return when (name.substringAfterLast('.', "").lowercase()) {

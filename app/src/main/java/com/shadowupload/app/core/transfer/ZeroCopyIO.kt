@@ -151,8 +151,13 @@ object ZeroCopyIO {
                 }
                 if (sent >= length) return SendResult(sent, null)
             }
+            // إن أُرسل جزء من البيانات ثم تعذّر الباقي فلا يجوز إعادة الإرسال
+            // من البداية: ذلك يُكرر بايتات على السلك ويُفسد الملف المستقبَل
+            if (sent > 0L) {
+                throw IOException("انقطع إرسال الملف بعد $sent بايت من $length")
+            }
         }
-        // احتياطي: القراءة عبر InputStream مع مخزن مباشر
+        // احتياطي آمن: يُستخدم فقط عندما لم يُرسل أي بايت بعد
         val input = resolver.openInputStream(uri)
             ?: throw TransferException("تعذر فتح الملف المحدد")
         input.use { stream ->
@@ -222,6 +227,7 @@ object ZeroCopyIO {
                 buffer.limit(want)
                 val read = source.read(buffer)
                 if (read <= 0) throw IOException("انقطع الاتصال أثناء استقبال البيانات")
+                if (read > remaining) throw IOException("تجاوز حجم الجزء المعلن")
                 buffer.flip()
                 while (buffer.hasRemaining()) {
                     channel.write(buffer)
@@ -260,16 +266,13 @@ object ZeroCopyIO {
             raf.seek(offset)
             val fileChannel = raf.channel
             val direct = ByteBuffer.allocateDirect(maxOf(bufferSize, CHUNK_SIZE))
+            // مصفوفة وسيطة واحدة يُعاد استخدامها (تخصيصها داخل الحلقة كان يضغط GC)
+            val staging = ByteArray(minOf(maxOf(bufferSize, 64 * 1024), STAGING_SIZE))
             var remaining = length
             var received = 0L
             while (remaining > 0L) {
-                direct.clear()
-                val want = minOf(remaining, direct.capacity().toLong()).toInt()
-                direct.limit(want)
-                // يجب تفريغ المخزن المباشر عبر مصفوفة وسيطة لأن InputStream
-                // لا يدعم ByteBuffer مباشرة على كل الإصدارات
-                val staging = ByteArray(minOf(want, STAGING_SIZE))
-                val read = source.read(staging)
+                val want = minOf(remaining, staging.size.toLong()).toInt()
+                val read = source.read(staging, 0, want)
                 if (read <= 0) throw IOException("انقطع الاتصال أثناء استقبال البيانات")
                 direct.clear()
                 direct.put(staging, 0, read)

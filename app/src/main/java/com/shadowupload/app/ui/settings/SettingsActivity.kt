@@ -32,6 +32,7 @@ class SettingsActivity : BaseActivity() {
 
         loadValues()
         wireListeners()
+        wireLanguage()
     }
 
     /** تعبئة القيم الحالية */
@@ -108,6 +109,24 @@ class SettingsActivity : BaseActivity() {
         binding.swVibration.setOnCheckedChangeListener { _, checked ->
             if (bindingInProgress) return@setOnCheckedChangeListener
             app.preferences.vibrationEnabled = checked
+        }
+    }
+
+    /**
+     * تبديل اللغة: العربية هي الافتراضية، والإنجليزية احتياطية.
+     * نستخدم AppCompatDelegate.setApplicationLocales ليبقى الخيار محفوظاً.
+     */
+    private fun wireLanguage() {
+        val current = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
+        val isArabic = current.isEmpty || current.toLanguageTags().startsWith("ar")
+        binding.toggleLanguage.check(if (isArabic) R.id.btnLanguageAr else R.id.btnLanguageEn)
+        binding.toggleLanguage.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val locales = androidx.core.os.LocaleListCompat.forLanguageTags(
+                if (checkedId == R.id.btnLanguageAr) "ar" else "en"
+            )
+            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(locales)
+            recreate()
         }
     }
 

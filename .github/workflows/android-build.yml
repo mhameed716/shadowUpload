@@ -111,6 +111,23 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
 
+      # إصدار تلقائي: يمنح رابط تحميل مباشر في صفحة Releases
+      - name: نشر إصدار مع ملفات APK
+        if: success()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="v1.0.0-build.${{ github.run_number }}"
+          NOTES="بناء تلقائي من الفرع \`${GITHUB_REF_NAME}\` عند الالتزام ${GITHUB_SHA:0:7}."
+          gh release create "$TAG" \
+            app/build/outputs/apk/debug/*.apk \
+            app/build/outputs/apk/release/*.apk \
+            --title "shadowUpload 1.0.0 (build ${{ github.run_number }})" \
+            --notes "$NOTES" \
+            --target "$GITHUB_SHA"
+
       # قناة التشخيص: ننشر آخر جزء من السجل كتعليق على الـ commit
       - name: نشر سجل الفشل على الـ commit
         if: failure()

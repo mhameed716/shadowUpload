@@ -149,6 +149,19 @@
 python3 tools/verify.py               # فحص الموارد والكود (بلا Gradle)
 ```
 
+### ✅ البناء ناجح
+
+البناء يعمل تلقائياً على GitHub Actions عند كل دفعة، وينتج:
+- `shadowUpload-debug-apk` — نسخة تجريبية قابلة للتثبيت مباشرة
+- `shadowUpload-release-apk` — نسخة الإصدار مصغّرة بـ R8
+
+التحميل من صفحة **[Releases](../../releases)** أو من تبويب **Actions ← آخر تشغيل ← Artifacts**.
+
+```bash
+# بناء محلي (يتطلب JDK 17 + Android SDK 34)
+gradle :app:assembleDebug
+```
+
 ### الفحص الشامل
 
 ```bash

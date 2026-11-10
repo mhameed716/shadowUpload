@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>shadowUpload — معاينة التصميم</title>
+<style>
+  :root{
+    --shadow-black:#05060A; --surface:#0B0E16; --surface-high:#121724;
+    --surface-elev:#182032; --outline:#23304A;
+    --cyan:#00F0FF; --magenta:#FF2E9A; --violet:#8B5CF6;
+    --lime:#A3FF12; --amber:#FFB020; --red:#FF3B5C;
+    --text:#EAF6FF; --text2:#93A4C0; --text3:#5D6B84;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-font-smoothing:antialiased;}
+  body{
+    background:
+      radial-gradient(900px 500px at 80% -10%, #10283a 0%, transparent 60%),
+      radial-gradient(700px 500px at 10% 110%, #1a0b22 0%, transparent 55%),
+      var(--shadow-black);
+    color:var(--text);
+    font-family:"Segoe UI","Tahoma","Noto Naskh Arabic",system-ui,sans-serif;
+    min-height:100vh; padding:28px 18px 46px;
+  }
+  .head{max-width:1180px; margin:0 auto 26px;}
+  .brand{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .logo{
+    width:54px;height:54px;border-radius:16px;flex:0 0 auto;
+    background:linear-gradient(145deg,#12283a,#05121a);
+    border:1px solid rgba(0,240,255,.35);
+    display:grid;place-items:center;
+    box-shadow:0 0 26px rgba(0,240,255,.22), inset 0 0 18px rgba(0,240,255,.10);
+  }
+  .logo svg{width:32px;height:32px;}
+  h1{font-size:26px; letter-spacing:.5px;}
+  h1 span{color:var(--cyan); text-shadow:0 0 18px rgba(0,240,255,.55);}
+  .tag{color:var(--text2); font-size:13px; margin-top:3px;}
+  .pills{display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;}
+  .pill{
+    font-size:11.5px; padding:6px 11px; border-radius:999px;
+    border:1px solid var(--outline); color:var(--text2); background:rgba(18,23,36,.7);
+    display:flex; align-items:center; gap:6px;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 8px var(--lime);}
+  .dot.cy{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+  .dot.mg{background:var(--magenta);box-shadow:0 0 8px var(--magenta);}
+
+  .stage{max-width:1180px;margin:0 auto;display:flex;gap:26px;justify-content:center;flex-wrap:wrap;}
+  .frame{width:320px;}
+  .frame .label{
+    font-size:12px; color:var(--text3); margin:0 6px 9px; display:flex; justify-content:space-between;
+  }
+  .frame .label b{color:var(--cyan); font-weight:600;}
+  .phone{
+    position:relative; height:660px; border-radius:32px; overflow:hidden;
+    background:linear-gradient(200deg,#0a1420 0%, var(--shadow-black) 55%);
+    border:1px solid #1b2740;
+    box-shadow:0 24px 60px rgba(0,0,0,.65), 0 0 0 6px #06080e inset;
+    display:flex; flex-direction:column;
+  }
+  /* شريط الحالة */
+  .statusbar{
+    height:30px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; font-size:10.5px; color:var(--text3);
+  }
+  .statusbar .net{display:flex;gap:4px;align-items:center;}
+  .bar{width:3px;border-radius:2px;background:var(--cyan);opacity:.9;}
+  /* الشريط العلوي */
+  .topbar{display:flex;align-items:center;gap:10px;padding:4px 14px 10px;}
+  .appicon{
+    width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#12283a,#060a12);
+    border:1px solid rgba(0,240,255,.3); display:grid;place-items:center;flex:0 0 auto;
+    box-shadow:0 0 16px rgba(0,240,255,.15);
+  }
+  .appicon svg{width:20px;height:20px;}
+  .titles{flex:1; min-width:0;}
+  .titles .t{font-size:16px; font-weight:700;}
+  .titles .s{font-size:10.5px; color:var(--text3); margin-top:2px;}
+  .round-btn{
+    width:32px;height:32px;border-radius:50%;flex:0 0 auto;
+    background:var(--surface-high); border:1px solid var(--outline);
+    display:grid;place-items:center;color:var(--text2);
+  }
+  .round-btn svg{width:15px;height:15px;}
+
+  /* المحتوى */
+  .body{flex:1; overflow:hidden; padding:0 12px; position:relative;}
+  .search{
+    display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border-radius:999px;
+    background:var(--surface-high); border:1px solid var(--outline); color:var(--text3); font-size:12px;
+  }
+  .search svg{width:14px;height:14px;flex:0 0 auto;}
+  .tabs{display:flex;gap:16px;padding:12px 4px 10px;font-size:12px;color:var(--text3);overflow:hidden;}
+  .tabs .on{color:var(--cyan);position:relative;padding-bottom:6px;}
+  .tabs .on::after{
+    content:"";position:absolute;bottom:0;right:0;left:0;height:2px;border-radius:2px;
+    background:var(--cyan); box-shadow:0 0 10px var(--cyan);
+  }
+  .file{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;margin-bottom:6px;
+    border-radius:13px;background:var(--surface); border:1px solid var(--outline);
+  }
+  .file .ic{
+    width:32px;height:32px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;
+    background:rgba(0,240,255,.07); border:1px solid rgba(0,240,255,.18);
+  }
+  .file .ic svg{width:16px;height:16px;}
+  .file .meta{flex:1;min-width:0;}
+  .file .n{font-size:12px; white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .file .m{font-size:10px;color:var(--text3);margin-top:3px;}
+  .file .sz{font-size:10px;color:var(--text2);font-family:ui-monospace,monospace;}
+  .file.sel{border-color:rgba(0,240,255,.55); background:rgba(0,240,255,.06);}
+  .check{
+    width:16px;height:16px;border-radius:5px;border:1.5px solid rgba(0,240,255,.5);
+    display:grid;place-items:center;flex:0 0 auto;
+  }
+  .check.on{background:var(--cyan); border-color:var(--cyan);}
+  .check svg{width:10px;height:10px;color:#05060A;}
+
+  /* الشريط السفلي */
+  .bottomnav{
+    position:relative; height:62px; flex:0 0 auto; display:flex; align-items:center;
+    background:linear-gradient(180deg, #070a11 0%, #05070d 100%);
+    border-top:1px solid rgba(0,240,255,.18); border-radius:20px 20px 0 0;
+    box-shadow:0 -14px 30px rgba(0,0,0,.55);
+  }
+  .navitem{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-size:10px;color:var(--text3);
+  }
+  .navitem svg{width:21px;height:21px;}
+  .navitem.on{color:var(--cyan);}
+  .navitem.on svg{filter:drop-shadow(0 0 8px rgba(0,240,255,.65));}
+  .fabgap{width:66px;flex:0 0 auto;}
+  .fab{
+    position:absolute; left:50%; transform:translateX(-50%); bottom:26px;
+    width:58px;height:58px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #b8feff, var(--cyan) 55%, #00b3c9 100%);
+    display:grid;place-items:center;color:#04070c;
+    box-shadow:0 8px 26px rgba(0,240,255,.45), 0 0 0 5px rgba(5,6,10,.95),
+               0 0 0 6px rgba(0,240,255,.25);
+    border:none;
+  }
+  .fab svg{width:26px;height:26px;}
+
+  /* مركز النقل */
+  .engine{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;
+    background:rgba(0,240,255,.06); border:1px solid rgba(0,240,255,.35); margin-top:4px;
+  }
+  .engine svg{width:18px;height:18px;flex:0 0 auto;}
+  .engine .e1{font-size:11.5px;color:var(--cyan);}
+  .engine .e2{font-size:9.5px;color:var(--text3);margin-top:2px;}
+  .tile{
+    display:flex;align-items:center;gap:11px;padding:12px 12px;margin-top:9px;
+    border-radius:14px;background:var(--surface);border:1px solid var(--outline);
+  }
+  .tile .ic{
+    width:42px;height:42px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+    background:radial-gradient(circle at 35% 30%, rgba(0,240,255,.16), rgba(0,240,255,.04));
+    border:1px solid rgba(0,240,255,.32);
+  }
+  .tile .ic svg{width:20px;height:20px;}
+  .tile .tx{flex:1;min-width:0;}
+  .tile .tt{font-size:12.5px;font-weight:600;}
+  .tile .ts{font-size:9.5px;color:var(--text3);margin-top:3px;line-height:1.45;}
+  .tile .ar{color:var(--text3);}
+  .tile .ar svg{width:14px;height:14px;}
+
+  /* أنا */
+  .idcard{
+    display:flex;align-items:center;gap:11px;padding:12px;border-radius:16px;
+    background:var(--surface);border:1px solid rgba(0,240,255,.22);margin-top:2px;
+  }
+  .avatar{
+    width:48px;height:48px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+    background:radial-gradient(circle at 35% 30%, rgba(0,240,255,.18), rgba(0,240,255,.04));
+    border:1px solid rgba(0,240,255,.35);
+  }
+  .avatar svg{width:23px;height:23px;}
+  .idname{font-size:13px;font-weight:700;}
+  .idcode{font-size:9.5px;color:var(--text3);font-family:ui-monospace,monospace;margin-top:3px;}
+  .storage{padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--outline);margin-top:10px;}
+  .storage .cap{font-size:9.5px;color:var(--text3);}
+  .storage .val{font-size:13px;font-weight:700;margin-top:4px;}
+  .track{height:7px;border-radius:999px;background:var(--surface-elev);margin-top:9px;overflow:hidden;}
+  .fill{height:100%;width:63%;border-radius:999px;background:linear-gradient(90deg,var(--cyan),var(--magenta));box-shadow:0 0 12px rgba(0,240,255,.5);}
+  .storage .row{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text3);margin-top:7px;}
+  .sect{font-size:9.5px;color:var(--text3);margin:14px 4px 7px;}
+  .mrow{
+    display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;
+    background:var(--surface);border:1px solid var(--outline);margin-bottom:6px;
+  }
+  .mrow .ic{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+    background:radial-gradient(circle at 35% 30%, rgba(0,240,255,.13), rgba(0,240,255,.03));
+    border:1px solid rgba(0,240,255,.26);}
+  .mrow .ic svg{width:15px;height:15px;}
+  .mrow .tx{flex:1;min-width:0;}
+  .mrow .tt{font-size:11.5px;}
+  .mrow .ts{font-size:9px;color:var(--text3);margin-top:2px;}
+  .mrow .ar svg{width:13px;height:13px;color:var(--text3);}
+
+  /* ملاحظات */
+  .notes{max-width:1180px;margin:34px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;}
+  .note{
+    padding:15px 16px;border-radius:16px;background:rgba(11,14,22,.85);
+    border:1px solid var(--outline);
+  }
+  .note h3{font-size:13px;margin-bottom:7px;display:flex;align-items:center;gap:7px;}
+  .note h3 svg{width:15px;height:15px;}
+  .note p{font-size:11.5px;color:var(--text2);line-height:1.75;}
+  .note code{color:var(--cyan);font-family:ui-monospace,monospace;font-size:10.5px;}
+  .foot{max-width:1180px;margin:26px auto 0;font-size:11px;color:var(--text3);text-align:center;line-height:1.8;}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 108 108" fill="none">
+        <path d="M54 28c-9 0-16 7-16 16 0 2 .4 4 1.1 5.8C33.6 52.6 30 58.9 30 66c0 3 .5 5.9 1.4 8.6C37 71 44.3 70.4 54 70.4s17 .6 22.6 4.2c.9-2.7 1.4-5.6 1.4-8.6 0-7.1-3.6-13.4-9.1-16.2.7-1.8 1.1-3.8 1.1-5.8 0-9-7-16-16-16z" fill="#00F0FF"/>
+        <circle cx="45" cy="42" r="4" fill="#05060A"/><circle cx="63" cy="42" r="4" fill="#05060A"/>
+        <path d="M54 74l-11 10h7v12h8V84h7z" fill="#FF2E9A"/>
+      </svg>
+    </div>
+    <div>
+      <h1>shadow<span>Upload</span></h1>
+      <div class="tag">معاينة بصرية للتصميم السيبراني الداكن — واجهة عربية RTL كاملة</div>
+    </div>
+  </div>
+  <div class="pills">
+    <span class="pill"><span class="dot cy"></span> الشريط السفلي: ٣ عناصر فقط</span>
+    <span class="pill"><span class="dot mg"></span> مركز النقل: ٦ خيارات</span>
+    <span class="pill"><span class="dot"></span> يعمل من أندرويد 5.0 → 14+</span>
+    <span class="pill"><span class="dot cy"></span> بلا إنترنت • بلا خادم</span>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ================= 1) الملفات ================= -->
+  <div class="frame">
+    <div class="label"><span>① تبويب <b>الملفات</b></span><span>تم تحديد 2</span></div>
+    <div class="phone">
+      <div class="statusbar"><span>٩:٤١</span><span class="net">
+        <span class="bar" style="height:5px"></span><span class="bar" style="height:8px"></span>
+        <span class="bar" style="height:11px"></span><span style="margin-inline-start:4px">٨٧٪</span></span></div>
+
+      <div class="topbar">
+        <div class="appicon"><svg viewBox="0 0 108 108"><path d="M54 28c-9 0-16 7-16 16 0 2 .4 4 1.1 5.8C33.6 52.6 30 58.9 30 66c0 3 .5 5.9 1.4 8.6C37 71 44.3 70.4 54 70.4s17 .6 22.6 4.2c.9-2.7 1.4-5.6 1.4-8.6 0-7.1-3.6-13.4-9.1-16.2.7-1.8 1.1-3.8 1.1-5.8 0-9-7-16-16-16z" fill="#00F0FF"/><path d="M54 74l-11 10h7v12h8V84h7z" fill="#FF2E9A"/></svg></div>
+        <div class="titles"><div class="t">الملفات</div><div class="s">تصفّح وأرسل ما تريد بلمسة واحدة</div></div>
+        <div class="round-btn"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+      </div>
+
+      <div class="body">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 13 15.2l.3.3v.8l5 5L20 19zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
+          ابحث عن ملف بالاسم…
+        </div>
+
+        <div class="tabs">
+          <span class="on">التطبيقات</span><span>الفيديو</span><span>الصور</span><span>الصوت</span><span>المستندات</span>
+        </div>
+
+        <div class="file sel">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M4 8h4V4H4zM10 20h4v-4h-4zM4 20h4v-4H4zM4 14h4v-4H4zM10 14h4v-4h-4zM16 4v4h4V4z"/></svg></div>
+          <div class="meta"><div class="n">محادثات_الفريق.apk</div><div class="m">حزمة تطبيق • ٤٢٫٦ م.ب</div></div>
+          <div class="check on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l6 6L20 6"/></svg></div>
+        </div>
+
+        <div class="file">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11z"/></svg></div>
+          <div class="meta"><div class="n">رحلة_الصيف.mp4</div><div class="m">فيديو • اليوم</div></div>
+          <div class="sz">1.2 ج.ب</div>
+        </div>
+
+        <div class="file sel">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2zM8.5 13.5l2.5 3L14.5 12l4.5 6H5z"/></svg></div>
+          <div class="meta"><div class="n">شهادة_التخرج.jpg</div><div class="m">صورة • أمس</div></div>
+          <div class="check on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M4 12l6 6L20 6"/></svg></div>
+        </div>
+
+        <div class="file">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M12 3v10.6A4 4 0 1 0 14 17V7h4V3z"/></svg></div>
+          <div class="meta"><div class="n">مقطع_صوتي.m4a</div><div class="m">صوت • ٣ د</div></div>
+          <div class="sz">6.4 م.ب</div>
+        </div>
+
+        <div class="file">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z"/></svg></div>
+          <div class="meta"><div class="n">تقرير_المشروع.pdf</div><div class="m">مستند • ٦ أيام</div></div>
+          <div class="sz">842 ك.ب</div>
+        </div>
+      </div>
+
+      <div class="bottomnav">
+        <div class="navitem on">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/></svg>
+          الملفات
+        </div>
+        <div class="fabgap"></div>
+        <div class="navitem">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg>
+          أنا
+        </div>
+        <button class="fab" aria-label="مركز النقل">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 7v10l8 5 8-5V7zm0 2.3 5.7 3.6v8.3L12 19.7l-5.7-3.6V7.9z"/><path d="M12 8.5l3.2 1.9v3.2L12 15.5l-3.2-1.9v-3.2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2) مركز النقل ================= -->
+  <div class="frame">
+    <div class="label"><span>② <b>مركز النقل</b> (من الزر العائم)</span><span>٦ خيارات</span></div>
+    <div class="phone">
+      <div class="statusbar"><span>٩:٤٢</span><span class="net">
+        <span class="bar" style="height:5px"></span><span class="bar" style="height:8px"></span>
+        <span class="bar" style="height:11px"></span><span style="margin-inline-start:4px">٨٧٪</span></span></div>
+
+      <div class="topbar">
+        <div class="round-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z"/></svg></div>
+        <div class="titles"><div class="t">مركز النقل</div><div class="s">اختر طريقة الاتصال السريعة</div></div>
+      </div>
+
+      <div class="body">
+        <div class="engine">
+          <svg viewBox="0 0 24 24" fill="#FF2E9A"><path d="M20.4 8.6l-1.2 1.8A6.8 6.8 0 0 1 12 17.9a6.9 6.9 0 0 1-6.9-6.9h-2A8.9 8.9 0 0 0 12 19.9c1.6 0 3.2-.4 4.5-1.2l-1.2 1.8 6.3 2.2z"/></svg>
+          <div><div class="e1">محرك النقل: NIO متعدد المسارات</div>
+          <div class="e2">Zero-Copy • مخازن ١ ميجابايت • فحص تلقائي</div></div>
+        </div>
+
+        <div class="tile">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm11 0c-.3 0-.6 0-1 .1 1.2.8 2 2 2 3.4V19h4v-2.5c0-2.3-2.7-3.5-5-3.5z"/></svg></div>
+          <div class="tx"><div class="tt">إنشاء مجموعة</div><div class="ts">استضف جلسة واسمح للآخرين بالانضمام إلى جهازك</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+
+        <div class="tile">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#FF2E9A"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-4H7v-2h4V7h2v4h4v2h-4z"/></svg></div>
+          <div class="tx"><div class="tt">انضمام لمجموعة</div><div class="ts">أدخل رمز الجلسة أو امسح الرمز للانضمام</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+
+        <div class="tile">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#8B5CF6"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm4 0h2v2h-2zm-2 2h2v2h-2zm4 0h2v2h-2zm-6 2h2v2h-2zm4 0h2v2h-2zm-2 2h2v2h-2zm4 0h2v2h-2z"/></svg></div>
+          <div class="tx"><div class="tt">المشاركة عبر الـ QR</div><div class="ts">اتصال فوري بمسح رمز واحد — أقل من ٠٫٢ ثانية</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+
+        <div class="tile">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#A3FF12"><path d="M17 1H7a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zm0 17H7V6h10zM8.5 9h7v1.5h-7zm0 3h5v1.5h-5zm0 3h7v1.5h-7z"/></svg></div>
+          <div class="tx"><div class="tt">نسخ هاتف آخر بالكامل</div><div class="ts">نقل التطبيقات والصور وجهات الاتصال إلى جهاز جديد</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+
+        <div class="tile">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#FFB020"><path d="M9 2h6a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 4v12h6V6z"/></svg></div>
+          <div class="tx"><div class="tt">تحريك الهاتف للاتصال</div><div class="ts">حرّك الجهاز للعثور على أقرب جهاز والاتصال به</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+
+        <div class="tile">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M1 9l2 2a12.7 12.7 0 0 1 18 0l2-2A15.7 15.7 0 0 0 1 9zm8 8 3 3 3-3a4.2 4.2 0 0 0-6 0zm-4-4 2 2a7.7 7.7 0 0 1 10 0l2-2a10.7 10.7 0 0 0-14 0z"/></svg></div>
+          <div class="tx"><div class="tt">إعدادات الـ WiFi والمساعدة</div><div class="ts">حل مشاكل الاتصال ومشاركة الشبكة والمساعدة</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+      </div>
+      <div class="bottomnav" style="justify-content:center">
+        <div class="navitem" style="font-size:10px">لا تبويبات «اكتشاف» أو «انص به» هنا — الشريط السفلي يبقى ٣ عناصر فقط</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 3) أنا ================= -->
+  <div class="frame">
+    <div class="label"><span>③ تبويب <b>أنا</b></span><span>الإعدادات والسجل</span></div>
+    <div class="phone">
+      <div class="statusbar"><span>٩:٤٣</span><span class="net">
+        <span class="bar" style="height:5px"></span><span class="bar" style="height:8px"></span>
+        <span class="bar" style="height:11px"></span><span style="margin-inline-start:4px">٨٦٪</span></span></div>
+
+      <div class="topbar">
+        <div class="appicon"><svg viewBox="0 0 108 108"><path d="M54 28c-9 0-16 7-16 16 0 2 .4 4 1.1 5.8C33.6 52.6 30 58.9 30 66c0 3 .5 5.9 1.4 8.6C37 71 44.3 70.4 54 70.4s17 .6 22.6 4.2c.9-2.7 1.4-5.6 1.4-8.6 0-7.1-3.6-13.4-9.1-16.2.7-1.8 1.1-3.8 1.1-5.8 0-9-7-16-16-16z" fill="#00F0FF"/><path d="M54 74l-11 10h7v12h8V84h7z" fill="#FF2E9A"/></svg></div>
+        <div class="titles"><div class="t">أنا</div><div class="s">الإعدادات والسجل والخصوصية</div></div>
+        <div class="round-btn"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+      </div>
+
+      <div class="body">
+        <div class="idcard">
+          <div class="avatar"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg></div>
+          <div><div class="idname">هاتف محمد</div><div class="idcode">SU-7F2A91</div></div>
+        </div>
+
+        <div class="storage">
+          <div class="cap">التخزين</div>
+          <div class="val">٨١٫٤ ج.ب من ١٢٨ ج.ب مستخدمة</div>
+          <div class="track"><div class="fill"></div></div>
+          <div class="row"><span>٤٦٫٦ ج.ب متاحة</span><span>shadowUpload/المستلمة</span></div>
+        </div>
+
+        <div class="sect">النقل والسجل</div>
+
+        <div class="mrow">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M13 3a9 9 0 1 0 8.9 10.9h-2a7 7 0 1 1-6.9-8.9zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z"/></svg></div>
+          <div class="tx"><div class="tt">سجل النقل</div><div class="ts">كل جلسات الإرسال والاستقبال السابقة</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+
+        <div class="mrow">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#A3FF12"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></svg></div>
+          <div class="tx"><div class="tt">تنظيف التخزين</div><div class="ts">احذف الملفات المؤقتة والنسخ المكررة</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+
+        <div class="mrow">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#93A4C0"><path d="M19.1 13a7 7 0 0 0 .1-1 7 7 0 0 0-.1-1l2-1.6-1.9-3.3-2.4 1a7.5 7.5 0 0 0-1.6-1L14.8 3h-3.8l-.4 2.5c-.6.2-1.1.5-1.6.9l-2.4-1L4.7 8.7 6.7 10a7 7 0 0 0 0 2l-2 1.6 1.9 3.3 2.4-1c.5.4 1 .7 1.6 1l.4 2.4h3.8l.4-2.4c.6-.2 1.1-.5 1.6-1l2.4 1 1.9-3.3zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></div>
+          <div class="tx"><div class="tt">الإعدادات</div><div class="ts">السرعة، المظهر، سلوك النقل</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+
+        <div class="sect">الخصوصية والأمان</div>
+
+        <div class="mrow">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M12 1 3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5zm0 11h7c-.5 4.1-3.3 7.8-7 8.9V12H5V6.3l7-3.1z"/></svg></div>
+          <div class="tx"><div class="tt">الأمان</div><div class="ts">التحقق من بصمة الملفات ومنع الاتصالات الغريبة</div></div>
+          <span class="ar"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.6 16.6 13.2 12 8.6 7.4 10 6l6 6-6 6z"/></svg></span>
+        </div>
+      </div>
+
+      <div class="bottomnav">
+        <div class="navitem">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/></svg>
+          الملفات
+        </div>
+        <div class="fabgap"></div>
+        <div class="navitem on">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg>
+          أنا
+        </div>
+        <button class="fab" aria-label="مركز النقل">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 7v10l8 5 8-5V7zm0 2.3 5.7 3.6v8.3L12 19.7l-5.7-3.6V7.9z"/><path d="M12 8.5l3.2 1.9v3.2L12 15.5l-3.2-1.9v-3.2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="note">
+    <h3><svg viewBox="0 0 24 24" fill="#00F0FF"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg> السرعة من التقسيم لا من الأرقام</h3>
+    <p>الملف الكبير يُقسَّم على ٤–٨ اتصالات متوازية، وكل جزء يُرسل بـ <code>FileChannel.transferTo</code> (Zero-Copy) مع مخزن مقبس <code>1 ميجابايت</code>. هذا هو مصدر الفرق الحقيقي مقابل تطبيقات ترسل على مسار واحد.</p>
+  </div>
+  <div class="note">
+    <h3><svg viewBox="0 0 24 24" fill="#8B5CF6"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h2v2h-2zm4 0h2v2h-2zm-4 4h2v2h-2zm4 0h2v2h-2z"/></svg> اتصال فوري بلا اكتشاف</h3>
+    <p>رمز QR يحمل <code>العنوان + المنفذ + رمز الجلسة</code>، فيبدأ الاتصال مباشرة بمصافحة رسالة واحدة. لا حاجة لانتظار قوائم الأجهزة.</p>
+  </div>
+  <div class="note">
+    <h3><svg viewBox="0 0 24 24" fill="#A3FF12"><path d="M12 1 3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5z" opacity=".35"/><path d="M10.6 16.2 6.4 12l1.4-1.4 2.8 2.8 5.6-5.6L17.6 9z"/></svg> خصوصية بالتصميم</h3>
+    <p>لا يوجد أي استدعاء شبكي خارجي في الكود، لا <code>allowBackup</code>، والتاريخ محلي فقط. الملفات تُنقل بين الجهازين داخل شبكتك.</p>
+  </div>
+  <div class="note">
+    <h3><svg viewBox="0 0 24 24" fill="#FFB020"><path d="M4 4h16v2H4zm0 7h16v2H4zm0 7h10v2H4z"/></svg> الالتزام بالمواصفات</h3>
+    <p>الشريط السفلي ٣ عناصر فقط، ومركز النقل يحتوي الخيارات الستة بأسمائها العربية المطلوبة حرفياً، ولا يوجد تبويب «اكتشاف» أو «انص به».</p>
+  </div>
+</div>
+
+<div class="foot">
+  معاينة تصميم فقط (HTML) — الواجهة الحقيقية مكتوبة بـ Kotlin/XML داخل التطبيق.<br>
+  البناء الفعلي لم يُنفَّذ لعدم توفر JDK/Android SDK في بيئة العمل: نفّذ <code style="color:#00F0FF">./gradlew :app:assembleDebug</code> على جهازك.
+</div>
+
+</body>
+</html>

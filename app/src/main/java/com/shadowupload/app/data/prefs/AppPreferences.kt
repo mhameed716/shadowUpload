@@ -11,8 +11,11 @@ import com.shadowupload.app.util.NetworkUtils
  */
 class AppPreferences(context: Context) {
 
+    /** سياق التطبيق محفوظ لأن خاصية deviceId تحتاج ContentResolver لاحقاً */
+    private val appContext: Context = context.applicationContext
+
     private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
     /** مستمع تغييرات الإعدادات (تستخدمه خدمة النقل لإعادة بناء المحرك) */
     private var settingsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
@@ -43,7 +46,7 @@ class AppPreferences(context: Context) {
         get() {
             val stored = prefs.getString(KEY_DEVICE_ID, null)
             if (stored != null) return stored
-            val generated = NetworkUtils.pseudoDeviceId(context)
+            val generated = NetworkUtils.pseudoDeviceId(appContext)
             prefs.edit().putString(KEY_DEVICE_ID, generated).apply()
             return generated
         }

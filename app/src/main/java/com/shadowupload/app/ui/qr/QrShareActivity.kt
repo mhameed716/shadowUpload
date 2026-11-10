@@ -16,7 +16,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.launch
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.PlanarYUVLuminanceSource
@@ -25,11 +25,16 @@ import com.shadowupload.app.R
 import com.shadowupload.app.ShadowUploadApp
 import com.shadowupload.app.core.net.HandshakeToken
 import com.shadowupload.app.core.net.QrUtils
+import com.shadowupload.app.core.transfer.TransferListener
+import com.shadowupload.app.data.model.TransferProgress
 import com.shadowupload.app.databinding.ActivityQrShareBinding
 import com.shadowupload.app.ui.common.BaseActivity
+import com.shadowupload.app.ui.transfer.SendCoordinator
+import com.shadowupload.app.util.FormatUtils
 import com.shadowupload.app.util.NetworkUtils
 import com.shadowupload.app.util.PermissionUtils
 import com.shadowupload.app.util.UiUtils
+import com.google.android.material.tabs.TabLayout
 import java.util.concurrent.Executors
 
 /**
@@ -38,7 +43,7 @@ import java.util.concurrent.Executors
  *
  * وضعان:
  *  - استقبال: يعرض رمز هذا الجهاز ليمسحه الآخر.
- *  - إرسال: يفتح الكاميرا لمسح رمز الجهاز الآخر.
+ *  - إرسال: يفتح الكاميرا لمسح رمز الجهاز الآخر ثم يرسل المحدد.
  */
 class QrShareActivity : BaseActivity() {
 
@@ -48,6 +53,7 @@ class QrShareActivity : BaseActivity() {
     private var token: HandshakeToken.Token? = null
     private var countdown: CountDownTimer? = null
     private var cameraProvider: ProcessCameraProvider? = null
+    private var scannerActive = false
     private val analyzerExecutor = Executors.newSingleThreadExecutor()
 
     private val cameraPermissionLauncher = registerForActivityResult(
@@ -65,10 +71,10 @@ class QrShareActivity : BaseActivity() {
         binding.btnBack.setOnClickListener { finish() }
         binding.btnCopyToken.setOnClickListener { copyToken() }
         binding.btnRegenerate.setOnClickListener { regenerateToken() }
+        // ملاحظة: onTabSelected هو المسؤول عن تشغيل الماسح،
+        // فلا نستدعيه هنا أيضاً (would-open-twice)
         binding.btnScanQr.setOnClickListener {
-            // ننتقل لتبويب «الإرسال» ثم نشغّل الكاميرا
             binding.tabsQrMode.getTabAt(1)?.select()
-            requestScanner()
         }
 
         setupTabs()
@@ -125,23 +131,146 @@ class QrShareActivity : BaseActivity() {
         token = newToken
 
         val uri = HandshakeToken.buildUri(newToken.host, newToken.port, newToken.code)
+        binding.tvQrToken.text = newToken.code
+        binding.tvHandshake.setText(R.string.qr_handshake)
+
         val bitmap = QrUtils.generate(uri, 640)
         if (bitmap != null) {
             binding.ivQrCode.setImageBitmap(bitmap)
             binding.pbQrBusy.visibility = View.GONE
         } else {
-            binding.pbQrBusy.visibility = View.VISIBLE
-            // sendTo دالة suspend تنفّذ النقل على خيط الإدخال/الإخراج
-            val result = com.shadowupload.app.ui.transfer.SendCoordinator.sendTo(
+            // لا كاميرا/ذاكرة كافية لتوليد الصورة: يبقى الرمز النصي صالحاً
+            binding.pbQrBusy.visibility = View.GONE
+            UiUtils.snack(binding.root, R.string.qr_camera_unavailable)
+        }
+        startExpiryCountdown(newToken)
+    }
+
+    /** عدّاد تنازلي حتى انتهاء صلاحية الرمز */
+    private fun startExpiryCountdown(current: HandshakeToken.Token) {
+        countdown?.cancel()
+        val remaining = (current.expiresAt - System.currentTimeMillis()).coerceAtLeast(0L)
+        countdown = object : CountDownTimer(remaining, 1000L) {
+            override fun onTick(millisUntilFinished: Long) {
+                if (_binding == null) return
+                val seconds = (millisUntilFinished / 1000L).coerceAtLeast(0L)
+                binding.tvQrExpiry.text = getString(R.string.qr_expires_in, seconds)
+            }
+
+            override fun onFinish() {
+                if (_binding == null) return
+                // انتهت الصلاحية: نولّد رمزاً جديداً تلقائياً بدل رمز ميت
+                regenerateToken()
+            }
+        }.start()
+    }
+
+    // ================= نسخ الرمز =================
+
+    private fun copyToken() {
+        val current = token ?: return
+        val link = HandshakeToken.buildUri(current.host, current.port, current.code)
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        clipboard?.setPrimaryClip(ClipData.newPlainText(getString(R.string.qr_title), link))
+        UiUtils.snack(binding.root, R.string.qr_link_copied)
+    }
+
+    // ================= الماسح =================
+
+    private fun requestScanner() {
+        if (scannerActive) return
+        when {
+            !PermissionUtils.isGranted(this, Manifest.permission.CAMERA) ->
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            else -> startScanner()
+        }
+    }
+
+    private fun startScanner() {
+        if (_binding == null || scannerActive) return
+        scannerActive = true
+        val providerFuture = ProcessCameraProvider.getInstance(this)
+        providerFuture.addListener({
+            if (_binding == null) return@addListener
+            try {
+                val provider = providerFuture.get()
+                cameraProvider = provider
+                val previewView = PreviewView(this)
+                binding.scanContainer.removeAllViews()
+                binding.scanContainer.addView(previewView)
+
+                val preview = Preview.Builder().build()
+                preview.setSurfaceProvider(previewView.surfaceProvider)
+
+                val analysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                analysis.setAnalyzer(analyzerExecutor) { image -> analyzeFrame(image) }
+
+                provider.unbindAll()
+                val hasBackCamera = provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)
+                provider.bindToLifecycle(
+                    this,
+                    if (hasBackCamera) CameraSelector.DEFAULT_BACK_CAMERA
+                    else CameraSelector.DEFAULT_FRONT_CAMERA,
+                    preview,
+                    analysis
+                )
+            } catch (error: Throwable) {
+                scannerActive = false
+                UiUtils.snack(binding.root, R.string.qr_camera_unavailable)
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun analyzeFrame(image: ImageProxy) {
+        try {
+            val buffer = image.planes[0].buffer
+            val bytes = ByteArray(buffer.remaining()).also { buffer.get(it) }
+            val source = PlanarYUVLuminanceSource(
+                bytes, image.width, image.height, 0, 0, image.width, image.height, false
+            )
+            val bitmap = BinaryBitmap(HybridBinarizer(source))
+            val result = runCatching { MultiFormatReader().decode(bitmap) }.getOrNull()
+            val text = result?.text
+            if (!text.isNullOrBlank()) {
+                val parsed = HandshakeToken.parseUri(text)
+                runOnUiThread {
+                    if (parsed != null) onQrScanned(parsed) else {
+                        if (_binding != null) UiUtils.snack(binding.root, R.string.qr_invalid)
+                    }
+                }
+            }
+        } finally {
+            image.close()
+        }
+    }
+
+    private fun onQrScanned(peer: HandshakeToken.Token) {
+        if (_binding == null) return
+        stopScanner()
+        binding.tvHandshake.setText(R.string.qr_handshake)
+        binding.pbQrBusy.visibility = View.VISIBLE
+
+        val pending = com.shadowupload.app.ui.transfer.PendingTransfer.items
+        if (pending.isEmpty()) {
+            // لا ملفات محددة: نربط الجهاز فقط ليكمله المستخدم من تبويب الملفات
+            binding.pbQrBusy.visibility = View.GONE
+            UiUtils.snack(binding.root, R.string.transfer_no_peer)
+            return
+        }
+
+        lifecycleScope.launch {
+            val result = SendCoordinator.sendTo(
                 context = this@QrShareActivity,
-                host = peer.ip,
+                host = peer.host,
                 port = peer.port,
                 items = pending,
                 deviceId = app.preferences.deviceId,
                 deviceName = app.preferences.deviceName,
-                listener = object : com.shadowupload.app.core.transfer.TransferListener {
-                    override fun onProgress(progress: com.shadowupload.app.data.model.TransferProgress) {
-                        val text = com.shadowupload.app.util.FormatUtils.formatSpeed(progress.bytesPerSecond)
+                listener = object : TransferListener {
+                    override fun onProgress(progress: TransferProgress) {
+                        val text = FormatUtils.formatSpeed(progress.bytesPerSecond)
                         runOnUiThread {
                             if (isAliveBinding()) binding.tvQrExpiry.text = text
                         }
@@ -156,11 +285,11 @@ class QrShareActivity : BaseActivity() {
                 } else {
                     getString(R.string.transfer_failed) + " — " + result.message
                 }
-                com.shadowupload.app.ui.transfer.SendCoordinator.persistResult(
+                SendCoordinator.persistResult(
                     scope = lifecycleScope,
                     repository = app.historyRepository,
                     result = result,
-                    peerName = peer.name,
+                    peerName = peer.host,
                     sampleName = pending.firstOrNull()?.name.orEmpty()
                 )
             } else {
@@ -173,8 +302,9 @@ class QrShareActivity : BaseActivity() {
     private fun isAliveBinding(): Boolean = _binding != null && !isFinishing && !isDestroyed
 
     private fun stopScanner() {
+        scannerActive = false
         runCatching { cameraProvider?.unbindAll() }
-        binding.scanContainer.removeAllViews()
+        runCatching { _binding?.scanContainer?.removeAllViews() }
     }
 
     override fun onPause() {

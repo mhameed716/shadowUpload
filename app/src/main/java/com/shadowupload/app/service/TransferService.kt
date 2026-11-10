@@ -15,7 +15,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.shadowupload.app.R
 import com.shadowupload.app.ShadowUploadApp
-import com.shadowupload.app.core.net.TransferEngine
+import com.shadowupload.app.core.transfer.TransferEngine
 import com.shadowupload.app.core.transfer.ConflictPolicy
 import com.shadowupload.app.core.transfer.ReceiveSession
 import com.shadowupload.app.core.transfer.TransferListener
@@ -98,7 +98,7 @@ class TransferService : Service() {
         val items = com.shadowupload.app.ui.transfer.PendingTransfer.items
         if (items.isEmpty()) {
             _progress.postValue(
-                TransferProgress(state = TransferState.FAILED, message = getString(R.string.transfer_hub_action))
+                TransferProgress(state = TransferState.FAILED, message = getString(R.string.transfer_no_files))
             )
             return
         }
@@ -110,15 +110,17 @@ class TransferService : Service() {
 
         val engine = TransferEngine(this, app.preferences.snapshot())
         val sources = com.shadowupload.app.ui.transfer.SendCoordinator.toSources(this, items)
-        scope.launch {
-            engine.beginSend(
+        scope.launch(Dispatchers.IO) {
+            // sendBlocking يحجب خيط الخلفية فقط — لا واجهة ولا ANR
+            engine.sendBlocking(
                 peerHost = host,
                 peerPort = port,
                 sources = sources,
                 deviceId = app.preferences.deviceId,
                 deviceName = app.preferences.deviceName,
                 listener = listener
-            ).future.get()
+            )
+            // sendBlocking ينادي listener.onFinished بنفسه (السجل + الإشعار)
             com.shadowupload.app.ui.transfer.PendingTransfer.clear()
         }
     }
@@ -361,8 +363,15 @@ class TransferService : Service() {
             }
         }
 
+        /**
+         * إيقاف الخدمة. نستخدم startService وليس startForegroundService:
+         * استدعاء startForegroundService ثم الإيقاف الفوري يرفع
+         * ForegroundServiceDidNotStartInTimeException على أندرويد 8+.
+         */
         fun stop(context: Context) {
-            context.startService(Intent(context, TransferService::class.java).setAction(ACTION_STOP))
+            runCatching {
+                context.startService(Intent(context, TransferService::class.java).setAction(ACTION_STOP))
+            }
         }
     }
 }

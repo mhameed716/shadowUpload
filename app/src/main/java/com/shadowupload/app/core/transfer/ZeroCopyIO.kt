@@ -130,6 +130,9 @@ object ZeroCopyIO {
         onProgress: (Long) -> Unit
     ): SendResult {
         val resolver = context.contentResolver
+        // عدد البايتات المُرسلة فعلاً — يجب أن يبقى خارج نطاق use{}
+        // وإلا تعذّر الحكم على جواز إعادة المحاولة (سلامة البيانات)
+        var sent = 0L
         resolver.openFileDescriptor(uri, "r")?.use { pfd ->
             // المسار السريع عبر واصف الملف: يعطينا Zero-Copy أيضاً
             FileInputStream(pfd.fileDescriptor).use { stream ->
@@ -138,7 +141,6 @@ object ZeroCopyIO {
                     runCatching { channel.position(offset) }
                 }
                 var remaining = length
-                var sent = 0L
                 while (remaining > 0) {
                     val toSend = minOf(remaining, CHUNK_SIZE.toLong())
                     val moved = channel.transferTo(channel.position(), toSend, target)

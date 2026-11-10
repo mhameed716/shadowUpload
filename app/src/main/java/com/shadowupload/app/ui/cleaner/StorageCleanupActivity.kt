@@ -1,7 +1,6 @@
 package com.shadowupload.app.ui.cleaner
 
 import android.os.Bundle
-import android.view.View
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shadowupload.app.R

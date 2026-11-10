@@ -12,7 +12,7 @@ import java.util.Locale
  *  - بدء كل الشاشات من اليمين إلى اليسار.
  *  - بقاء أسماء المجلدات والقيم الرقمية سليمة.
  */
-class ShadowUploadApp : android.multidex.MultiDexApplication() {
+class ShadowUploadApp : androidx.multidex.MultiDexApplication() {
 
     lateinit var preferences: AppPreferences
         private set

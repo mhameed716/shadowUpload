@@ -254,6 +254,106 @@ def layer_removed_api():
                     err(f"{_relpath(f)}:{i}: بقايا API محذوف ({why})")
 layer_removed_api()
 
+# =====================================================================
+# طبقة استيرادات: ما يُستخدم فعلياً يجب أن يكون مستورداً (أخطاء ترجمة)
+# =====================================================================
+STD_IMPORTS = {'java.util.concurrent.locks.ReentrantLock'}  # أمثلة مسموحة
+
+# مراجع مؤهلة بالحزمة تُكتب كاملة في الكود → لا تحتاج import
+def layer_unimported_symbols():
+    # رموز معروفة تُستورد من مكتبات خارجية
+    REQUIRED = {
+        'ProcessCameraProvider': 'androidx.camera.lifecycle.ProcessCameraProvider',
+        'PreviewView': 'androidx.camera.view.PreviewView',
+        'ImageAnalysis': 'androidx.camera.core.ImageAnalysis',
+        'ImageProxy': 'androidx.camera.core.ImageProxy',
+        'CameraSelector': 'androidx.camera.core.CameraSelector',
+        'Preview': 'androidx.camera.core.Preview',
+        'lifecycleScope': 'androidx.lifecycle.lifecycleScope',
+        'ViewBinding': 'androidx.viewbinding.ViewBinding',
+        'PreviewView': 'androidx.camera.view.PreviewView',
+        'MultiDexApplication': 'androidx.multidex.MultiDexApplication',
+        'MaterialButton': 'com.google.android.material.button.MaterialButton',
+        'TabLayout': 'com.google.android.material.tabs.TabLayout',
+        'LinearProgressIndicator': 'com.google.android.material.progressindicator.LinearProgressIndicator',
+        'MultiFormatReader': 'com.google.zxing.MultiFormatReader',
+        'PlanarYUVLuminanceSource': 'com.google.zxing.PlanarYUVLuminanceSource',
+        'HybridBinarizer': 'com.google.zxing.common.HybridBinarizer',
+        'BinaryBitmap': 'com.google.zxing.BinaryBitmap',
+        'QRCodeWriter': 'com.google.zxing.qrcode.QRCodeWriter',
+        'BarcodeFormat': 'com.google.zxing.BarcodeFormat',
+        'BitmapFactory': 'android.graphics.BitmapFactory',
+        'NotificationCompat': 'androidx.core.app.NotificationCompat',
+    }
+    for f in kt_files(SRC):
+        src = open(f, encoding='utf-8').read()
+        imports = set(m.group(1) for m in re.finditer(r'^import\s+([\w.]+)', src, re.M))
+        imported_simple = {i.rsplit('.',1)[-1] for i in imports}
+        body = src
+        for m in re.finditer(r'^import[^\n]*\n', src, re.M):
+            body = body.replace(m.group(0), '')
+        # احذف التعليقات قبل البحث
+        body_nc = re.sub(r'//[^\n]*', '', body)
+        body_nc = re.sub(r'/\*.*?\*/', '', body_nc, flags=re.S)
+        for symbol, fq in REQUIRED.items():
+            if re.search(r'\b%s\b' % re.escape(symbol), body_nc):
+                if symbol not in imported_simple and fq not in imports:
+                    # قد يكون مؤهلاً بالكامل داخل الكود
+                    if not re.search(r'[\w.]+\.%s\b' % re.escape(symbol), body_nc):
+                        err(f"{_relpath(f)}: يستخدم {symbol} بلا import ({fq})")
+layer_unimported_symbols()
+
+# =====================================================================
+# طبقة صلاحية النطاق: متغير يُستخدم خارج كتلة تعريفه
+# (كشف حالة sent داخل use{} التي فشلت فعلياً في البناء)
+# =====================================================================
+def layer_scope_leaks():
+    for f in kt_files(SRC):
+        lines = open(f, encoding='utf-8').read().splitlines()
+        # نتتبّع المتغيرات المعرّفة داخل كتلة use{...} أو let{...} ونطاقها
+        stack = []  # (brace_depth_at_open, varname)
+        depth_before = 0
+        block_vars = []  # (varname, depth_of_block)
+        for i, line in enumerate(lines, 1):
+            code = re.sub(r'//.*', '', line)
+            for m in re.finditer(r'\b(?:var|val)\s+([a-z_][A-Za-z0-9_]*)\s*=', code):
+                # هل السطر يحتوي فتح كتلة دالة داخلية (use/let/also/apply)؟
+                if re.search(r'\b(use|let|also|apply|run|with)\s*\{', code) or stack:
+                    block_vars.append((m.group(1), len(stack)))
+            depth_before = code.count('{') - code.count('}')
+            # تحديث العمق
+            prev = stack[-1][0] if stack else 0
+            stack.append((prev + (code.count('{') - code.count('}')), i)) if False else None
+        # الفحص الفعلي: متغير معرّف داخل use{ } ثم يُشار إليه بعد سطر الإغلاق
+        src = open(f, encoding='utf-8').read()
+        for m in re.finditer(r'\.use\s*\{', src):
+            start = m.end()
+            depth = 1
+            idx = start
+            declared = set()
+            while idx < len(src) and depth > 0:
+                ch = src[idx]
+                if ch == '{': depth += 1
+                elif ch == '}': depth -= 1
+                idx += 1
+            body = src[start:idx-1]
+            for dm in re.finditer(r'\b(?:var|val)\s+([a-z_][A-Za-z0-9_]*)', body):
+                declared.add(dm.group(1))
+            # ما بعد الكتلة حتى نهاية الدالة
+            after = src[idx: idx + 1200]
+            after = re.split(r'\n\s{4}(?:private|internal|public|protected)?\s*fun\s', after)[0]
+            for name in declared:
+                # نتحرك فقط إذا لم يُعرَّف الاسم في أي مكان آخر بالملف
+                total_decl = len(re.findall(r'\b(?:var|val)\s+%s\b' % re.escape(name), src))
+                if total_decl != 1:
+                    continue
+                # نتجاهل خصائص الكائنات (x.name) والوسائط المسمّاة (name = ...)
+                if re.search(r'(?<![.\w])%s\b(?!\s*=[^=,)])(?!\s*:\s*\w)' % re.escape(name), after):
+                    line_no = src[:idx].count('\n') + 1
+                    err(f"{_relpath(f)}:{line_no}: '{name}' معرّف داخل use{{}} ويُستخدم خارجه (Unresolved reference)")
+layer_scope_leaks()
+
+
 print(f"\n❌ أخطاء ({len(errors)}):")
 for e in errors[:40]: print("  -",e)
 print(f"\n⚠️ تحذيرات ({len(warns)}):")

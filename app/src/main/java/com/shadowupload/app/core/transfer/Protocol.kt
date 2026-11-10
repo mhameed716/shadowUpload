@@ -1,5 +1,8 @@
 package com.shadowupload.app.core.transfer
 
+import com.shadowupload.app.data.model.TransferProgress
+import com.shadowupload.app.data.model.TransferState
+
 
 /** نتيجة التحقق من بصمة ملف */
 data class ChecksumResult(

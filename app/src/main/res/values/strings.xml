@@ -385,6 +385,7 @@
     <string name="transfer_no_peer">لا يوجد جهاز متصل</string>
     <string name="transfer_files_queued">تم إضافة %1$d ملف إلى قائمة النقل</string>
     <string name="transfer_hub_action">اختر ملفاً من تبويب الملفات أولاً</string>
+    <string name="transfer_no_files">لا توجد ملفات محددة لإرسالها</string>
     <string name="splash_permission_needed">يمكنك المنح لاحقاً من تبويب «أنا»</string>
     <string name="a11y_tile">%1$s — %2$s</string>
 </resources>

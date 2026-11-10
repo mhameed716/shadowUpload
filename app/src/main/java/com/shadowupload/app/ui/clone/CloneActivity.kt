@@ -1,7 +1,6 @@
 package com.shadowupload.app.ui.clone
 
 import android.os.Bundle
-import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.shadowupload.app.R
@@ -89,7 +88,7 @@ class CloneActivity : BaseActivity() {
             needed += com.shadowupload.app.util.PermissionUtils.callLogPermissions()
         }
         return needed.filterNot {
-            com.shadowupload.app.util.PermissionUtils.isGranted(requireContext(), it)
+            com.shadowupload.app.util.PermissionUtils.isGranted(this, it)
         }.toTypedArray()
     }
 

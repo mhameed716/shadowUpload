@@ -90,7 +90,7 @@ class WifiHelpActivity : BaseActivity() {
 
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
-                val engine = com.shadowupload.app.core.net.TransferEngine(
+                val engine = com.shadowupload.app.core.transfer.TransferEngine(
                     this@WifiHelpActivity,
                     app.preferences.snapshot()
                 )

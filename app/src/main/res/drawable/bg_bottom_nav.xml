@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- شريط التنقل السفلي: زجاج داكن مع حد علوي نيون -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#F2070A11" />
+            <corners
+                android:topLeftRadius="@dimen/radius_l"
+                android:topRightRadius="@dimen/radius_l" />
+        </shape>
+    </item>
+    <item android:gravity="top" android:height="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:centerColor="#8800F0FF"
+                android:endColor="#0000F0FF"
+                android:startColor="#0000F0FF" />
+        </shape>
+    </item>
+</layer-list>

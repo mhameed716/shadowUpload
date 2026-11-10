@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ============ هوية التطبيق ============ -->
+    <string name="app_name">shadowUpload</string>
+    <string name="app_title_ar">shadowUpload</string>
+    <string name="app_tagline">نقل ملفات خاطف • بخصوصية كاملة</string>
+    <string name="app_version_label">الإصدار %1$s</string>
+    <string name="build_label">بناء %1$s</string>
+
+    <!-- ============ الشاشة الافتتاحية ============ -->
+    <string name="splash_initializing">جارٍ تهيئة النفق الآمن…</string>
+    <string name="splash_checking_permissions">فحص صلاحيات التخزين…</string>
+    <string name="splash_ready">مستعد للنقل بسرعة البرق</string>
+    <string name="splash_local_only">يعمل بالكامل دون إنترنت — لا خوادم، لا تتبّع</string>
+
+    <!-- ============ التبويبات السفلية ============ -->
+    <string name="nav_files">الملفات</string>
+    <string name="nav_me">أنا</string>
+    <string name="nav_transfer_hub">مركز النقل</string>
+    <string name="nav_transfer_hub_desc">افتح مركز النقل السريع</string>
+
+    <!-- ============ تبويب الملفات ============ -->
+    <string name="files_title">الملفات</string>
+    <string name="files_subtitle">تصفّح وأرسل ما تريد بلمسة واحدة</string>
+    <string name="files_tab_apps">التطبيقات</string>
+    <string name="files_tab_videos">الفيديو</string>
+    <string name="files_tab_photos">الصور</string>
+    <string name="files_tab_audio">الصوت</string>
+    <string name="files_tab_documents">المستندات</string>
+    <string name="files_tab_storage">ذاكرة الجهاز</string>
+    <string name="files_search_hint">ابحث عن ملف بالاسم…</string>
+    <string name="files_empty_title">لا توجد عناصر هنا</string>
+    <string name="files_empty_body">جرّب تبويباً آخر أو امنح صلاحية الوصول من الإعدادات</string>
+    <string name="files_loading">جارٍ قراءة الفهرس…</string>
+    <string name="files_items_count">%1$d عنصر</string>
+    <string name="files_selected_count">تم تحديد %1$d</string>
+    <string name="files_select_all">تحديد الكل</string>
+    <string name="files_clear_selection">إلغاء التحديد</string>
+    <string name="files_send_selected">إرسال المحدد</string>
+    <string name="files_sort">ترتيب</string>
+    <string name="files_sort_name">الاسم</string>
+    <string name="files_sort_size">الحجم</string>
+    <string name="files_sort_date">التاريخ</string>
+    <string name="files_grant_access">منح صلاحية الوصول للملفات</string>
+    <string name="files_grant_access_body">يحتاج التطبيق لصلاحية قراءة الملفات لعرضها وإرسالها. لا يتم رفع أي ملف إلى الإنترنت.</string>
+    <string name="files_permission_denied">تم رفض الصلاحية — لن تظهر الملفات</string>
+    <string name="files_all_files_access">تحتاج صلاحية «كل الملفات» لتصفح الذاكرة بالكامل</string>
+    <string name="files_open_settings">فتح الإعدادات</string>
+    <string name="files_refresh">تحديث</string>
+    <string name="files_folder_up">مجلد أعلى</string>
+    <string name="files_storage_internal">الذاكرة الداخلية</string>
+    <string name="files_storage_used">%1$s مستخدمة</string>
+    <string name="files_storage_free">%1$s متاحة</string>
+
+    <!-- ============ تبويب أنا ============ -->
+    <string name="me_title">أنا</string>
+    <string name="me_subtitle">الإعدادات والسجل والخصوصية</string>
+    <string name="me_device_name">اسم الجهاز</string>
+    <string name="me_device_name_hint">اسم يظهر للطرف الآخر عند الاتصال</string>
+    <string name="me_section_transfer">النقل والسجل</string>
+    <string name="me_section_storage">التخزين</string>
+    <string name="me_section_privacy">الخصوصية والأمان</string>
+    <string name="me_section_about">عن التطبيق</string>
+    <string name="me_history">سجل النقل</string>
+    <string name="me_history_desc">كل جلسات الإرسال والاستقبال السابقة</string>
+    <string name="me_cleanup">تنظيف التخزين</string>
+    <string name="me_cleanup_desc">احذف الملفات المؤقتة والنسخ المكررة</string>
+    <string name="me_settings">الإعدادات</string>
+    <string name="me_settings_desc">السرعة، المظهر، سلوك النقل</string>
+    <string name="me_security">الأمان</string>
+    <string name="me_security_desc">التحقق من بصمة الملفات ومنع الاتصالات الغريبة</string>
+    <string name="me_storage_summary">%1$s من %2$s مستخدمة</string>
+    <string name="me_received_folder">مجلد الاستلام</string>
+    <string name="me_default_folder">shadowUpload/المستلمة</string>
+    <string name="me_open_folder">فتح المجلد</string>
+    <string name="me_clear_history">مسح السجل</string>
+    <string name="me_clear_history_confirm">هل تريد مسح سجل النقل بالكامل؟</string>
+    <string name="me_version_info">shadowUpload %1$s — يعمل من أندرويد 5.0 فما فوق</string>
+    <string name="me_offline_note">التطبيق يعمل على شبكتك المحلية فقط دون أي اتصال بالإنترنت.</string>
+    <string name="me_permissions_status">حالة الصلاحيات</string>
+    <string name="me_permission_granted">ممنوحة</string>
+    <string name="me_permission_missing">ناقصة</string>
+
+    <!-- ============ مركز النقل ============ -->
+    <string name="hub_title">مركز النقل</string>
+    <string name="hub_subtitle">اختر طريقة الاتصال السريعة</string>
+    <string name="hub_create_group">إنشاء مجموعة</string>
+    <string name="hub_create_group_desc">استضف جلسة واسمح للآخرين بالانضمام إلى جهازك</string>
+    <string name="hub_join_group">انضمام لمجموعة</string>
+    <string name="hub_join_group_desc">أدخل رمز الجلسة أو امسح الرمز للانضمام</string>
+    <string name="hub_qr_share">المشاركة عبر الـ QR</string>
+    <string name="hub_qr_share_desc">اتصال فوري بمسح رمز واحد — أقل من 0.2 ثانية</string>
+    <string name="hub_clone_phone">نسخ هاتف آخر بالكامل</string>
+    <string name="hub_clone_phone_desc">نقل التطبيقات والصور وجهات الاتصال إلى جهاز جديد</string>
+    <string name="hub_shake_connect">تحريك الهاتف للاتصال</string>
+    <string name="hub_shake_connect_desc">حرّك الجهاز للعثور على أقرب جهاز والاتصال به</string>
+    <string name="hub_wifi_help">إعدادات الـ WiFi والمساعدة</string>
+    <string name="hub_wifi_help_desc">حل مشاكل الاتصال ومشاركة الشبكة والمساعدة</string>
+    <string name="hub_engine_status">محرك النقل: NIO متعدد المسارات</string>
+    <string name="hub_engine_detail">Zero-Copy • مخازن 1 ميجابايت • فحص تلقائي</string>
+    <string name="hub_scanning">جارٍ البحث عن أجهزة قريبة…</string>
+
+    <!-- ============ إنشاء مجموعة ============ -->
+    <string name="group_create_title">إنشاء مجموعة</string>
+    <string name="group_name_label">اسم المجموعة</string>
+    <string name="group_name_hint">مثال: جلسة الفريق</string>
+    <string name="group_code_label">رمز الجلسة</string>
+    <string name="group_code_hint">6 أرقام</string>
+    <string name="group_start_hosting">بدء الاستضافة</string>
+    <string name="group_stop_hosting">إيقاف الاستضافة</string>
+    <string name="group_hosting_now">أنت تستضيف الجلسة الآن</string>
+    <string name="group_members">الأعضاء (%1$d)</string>
+    <string name="group_waiting_members">بانتظار انضمام أجهزة…</string>
+    <string name="group_share_code">شارك هذا الرمز مع أصدقائك</string>
+    <string name="group_connect_now">اتصال الآن</string>
+    <string name="group_leave">مغادرة المجموعة</string>
+    <string name="group_created_success">تم إنشاء المجموعة وتشغيل الاستضافة</string>
+    <string name="group_joined_success">تم الانضمام إلى المجموعة</string>
+    <string name="group_invalid_code">رمز الجلسة غير صحيح</string>
+    <string name="group_left">تمت مغادرة المجموعة</string>
+
+    <!-- ============ الانضمام ============ -->
+    <string name="join_title">انضمام لمجموعة</string>
+    <string name="join_enter_code">أدخل رمز الجلسة</string>
+    <string name="join_scan_hint">أو امسح رمز QR الظاهر على جهاز المضيف</string>
+    <string name="join_button">انضمام</string>
+    <string name="join_scan_button">مسح رمز QR</string>
+    <string name="join_connecting">جارٍ الاتصال بالمضيف…</string>
+    <string name="join_failed">تعذر الاتصال — تحقق من أن الجهازين على نفس الشبكة</string>
+
+    <!-- ============ QR ============ -->
+    <string name="qr_title">المشاركة عبر الـ QR</string>
+    <string name="qr_receive_title">استقبال ملفات</string>
+    <string name="qr_send_title">إرسال ملفات</string>
+    <string name="qr_show_code">هذا رمزك — دعه أمام الجهاز الآخر</string>
+    <string name="qr_scan_code">وجّه الكاميرا نحو رمز الجهاز الآخر</string>
+    <string name="qr_copy_link">نسخ رابط الاتصال</string>
+    <string name="qr_link_copied">تم نسخ رابط الاتصال</string>
+    <string name="qr_regenerate">توليد رمز جديد</string>
+    <string name="qr_expires_in">ينتهي خلال %1$d ثانية</string>
+    <string name="qr_handshake">جارٍ المصافحة الآمنة…</string>
+    <string name="qr_handshake_done">تمت المصافحة في %1$d ملم</string>
+    <string name="qr_camera_permission">يحتاج المسح إلى صلاحية الكاميرا</string>
+    <string name="qr_invalid">رمز غير صالح أو منتهي الصلاحية</string>
+    <string name="qr_camera_unavailable">الكاميرا غير متاحة على هذا الجهاز — استخدم الرمز النصي</string>
+
+    <!-- ============ تحريك الهاتف ============ -->
+    <string name="shake_title">تحريك الهاتف للاتصال</string>
+    <string name="shake_instruction">حرّك الهاتف بقوة للعثور على أقرب جهاز والاتصال به</string>
+    <string name="shake_detecting">جارٍ الاستشعار…</string>
+    <string name="shake_found">تم العثور على جهاز: %1$s</string>
+    <string name="shake_not_found">لم يتم العثور على أجهزة قريبة</string>
+    <string name="shake_sensor_missing">لا يوجد مستشعر تسارع على هذا الجهاز</string>
+    <string name="shake_sensitivity">حساسية التحريك</string>
+    <string name="shake_enable">تفعيل خاصية التحريك</string>
+
+    <!-- ============ نسخ الهاتف ============ -->
+    <string name="clone_title">نسخ هاتف آخر بالكامل</string>
+    <string name="clone_subtitle">اختر ما تريد نقله إلى الجهاز الجديد</string>
+    <string name="clone_apps">التطبيقات المثبتة</string>
+    <string name="clone_apps_desc">أسماء الحزم وإصداراتها (بدون بيانات خاصة)</string>
+    <string name="clone_photos">الصور ومقاطع الفيديو</string>
+    <string name="clone_audio">الصوتيات</string>
+    <string name="clone_documents">المستندات</string>
+    <string name="clone_contacts">جهات الاتصال</string>
+    <string name="clone_sms">الرسائل النصية</string>
+    <string name="clone_call_log">سجل المكالمات</string>
+    <string name="clone_settings">إعدادات التطبيق</string>
+    <string name="clone_estimated_size">الحجم التقديري: %1$s</string>
+    <string name="clone_start">بدء النسخ</string>
+    <string name="clone_warning">سيتم النقل مباشرة بين الجهازين فقط، دون أي خادم وسيط.</string>
+    <string name="clone_contacts_permission">تحتاج صلاحية جهات الاتصال لنسخها</string>
+    <string name="clone_sms_permission">تحتاج صلاحية الرسائل لنسخها</string>
+    <string name="clone_nothing_selected">اختر عنصراً واحداً على الأقل</string>
+
+    <!-- ============ WiFi والمساعدة ============ -->
+    <string name="wifi_title">إعدادات الـ WiFi والمساعدة</string>
+    <string name="wifi_state">حالة الشبكة: %1$s</string>
+    <string name="wifi_connected_to">متصل بـ %1$s</string>
+    <string name="wifi_not_connected">غير متصل بشبكة WiFi</string>
+    <string name="wifi_open_settings">فتح إعدادات WiFi</string>
+    <string name="wifi_hotspot">نقطة اتصال (Hotspot)</string>
+    <string name="wifi_hotspot_desc">إن لم توجد شبكة مشتركة، شغّل نقطة الاتصال من جهازك</string>
+    <string name="wifi_open_hotspot">فتح إعدادات نقطة الاتصال</string>
+    <string name="wifi_same_network">يجب أن يكون الجهازان على نفس الشبكة</string>
+    <string name="wifi_port_info">منفذ الاستقبال: %1$d</string>
+    <string name="wifi_diagnose">فحص الاتصال</string>
+    <string name="wifi_diagnose_ok">الفحص سليم — المنفذ متاح والشبكة تعمل</string>
+    <string name="wifi_diagnose_failed">فشل الفحص: %1$s</string>
+    <string name="wifi_firewall_hint">إن استمر الفشل، أوقف جدار الحماية أو شبكة VPN مؤقتاً</string>
+    <string name="help_title">المساعدة والأسئلة الشائعة</string>
+    <string name="help_q1">كيف يصل النقل إلى هذه السرعة؟</string>
+    <string name="help_a1">نستخدم Java NIO مع FileChannel.transferTo (Zero-Copy) ومخازن 1 ميجابايت وتقسيم متعدد المسارات، لتقليل نسخ الذاكرة والاستفادة القصوى من نطاق WiFi.</string>
+    <string name="help_q2">هل تُرفع ملفاتي للإنترنت؟</string>
+    <string name="help_a2">لا. كل الاتصالات تجري بين الجهازين على الشبكة المحلية، ولا يوجد أي خادم خارجي أو تتبّع.</string>
+    <string name="help_q3">لماذا لا يظهر الجهاز الآخر؟</string>
+    <string name="help_a3">تأكد من نفس الشبكة، ومن منح صلاحية «الأجهزة القريبة» على أندرويد 13+، ومن إيقاف VPN.</string>
+    <string name="help_q4">هل يعمل على أندرويد القديم؟</string>
+    <string name="help_a4">نعم، من أندرويد 5.0 (API 21) حتى أحدث الإصدارات، مع تكيّف تلقائي مع Scoped Storage.</string>
+
+    <!-- ============ النقل ============ -->
+    <string name="transfer_title">جارٍ النقل</string>
+    <string name="transfer_preparing">جارٍ التحضير…</string>
+    <string name="transfer_connecting">جارٍ الاتصال بالجهاز…</string>
+    <string name="transfer_file_of">ملف %1$d من %2$d</string>
+    <string name="transfer_speed">%1$s/ث</string>
+    <string name="transfer_eta">متبقي %1$s</string>
+    <string name="transfer_done">اكتمل النقل</string>
+    <string name="transfer_failed">فشل النقل</string>
+    <string name="transfer_cancelled">تم إلغاء النقل</string>
+    <string name="transfer_cancel">إلغاء</string>
+    <string name="transfer_completed_summary">تم نقل %1$d ملف (%2$s) في %3$s</string>
+    <string name="transfer_average_speed">متوسط السرعة: %1$s/ث</string>
+    <string name="transfer_verified">تم التحقق من بصمة كل ملف ✓</string>
+    <string name="transfer_skip_existing">تخطّي الملفات الموجودة</string>
+    <string name="transfer_overwrite">استبدال الملفات</string>
+    <string name="transfer_rename">إضافة لاحقة للاسم</string>
+    <string name="transfer_pause">إيقاف مؤقت</string>
+    <string name="transfer_resume">استئناف</string>
+    <string name="transfer_notification_channel">نقل الملفات</string>
+    <string name="transfer_notification_title">shadowUpload يعمل</string>
+    <string name="transfer_notification_body">%1$s — %2$s</string>
+    <string name="transfer_waiting_peer">بانتظار موافقة الطرف الآخر…</string>
+    <string name="transfer_accept">قبول</string>
+    <string name="transfer_reject">رفض</string>
+    <string name="transfer_incoming_request">طلب استقبال من %1$s (%2$d ملف، %3$s)</string>
+
+    <!-- ============ سجل النقل ============ -->
+    <string name="history_title">سجل النقل</string>
+    <string name="history_empty">لا يوجد سجل بعد</string>
+    <string name="history_empty_body">ستظهر هنا كل عمليات الإرسال والاستقبال</string>
+    <string name="history_sent">مُرسل</string>
+    <string name="history_received">مُستلم</string>
+    <string name="history_today">اليوم</string>
+    <string name="history_yesterday">أمس</string>
+    <string name="history_item_summary">%1$d ملف • %2$s</string>
+    <string name="history_clear">مسح السجل</string>
+    <string name="history_cleared">تم مسح السجل</string>
+    <string name="history_deleted_file">تم حذف الملف من الجهاز</string>
+
+    <!-- ============ الإعدادات ============ -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_section_transfer">النقل</string>
+    <string name="settings_section_appearance">المظهر واللغة</string>
+    <string name="settings_section_privacy">الخصوصية</string>
+    <string name="settings_max_speed">وضع أقصى سرعة</string>
+    <string name="settings_max_speed_desc">زيادة عدد المسارات ومخازن الشبكة إلى الحد الأقصى</string>
+    <string name="settings_threads">عدد مسارات النقل</string>
+    <string name="settings_threads_value">%1$d مسار</string>
+    <string name="settings_buffer">حجم مخزن Socket</string>
+    <string name="settings_buffer_value">%1$s</string>
+    <string name="settings_compression">ضغط أثناء النقل</string>
+    <string name="settings_compression_desc">مفيد للنصوص، وقد يبطئ الوسائط</string>
+    <string name="settings_verify_checksum">التحقق من بصمة الملفات</string>
+    <string name="settings_verify_checksum_desc">حساب SHA-256 لكل ملف بعد النقل</string>
+    <string name="settings_auto_accept">قبول الاستقبال تلقائياً</string>
+    <string name="settings_auto_accept_desc">قبول الطلبات من أجهزة موثوقة فقط</string>
+    <string name="settings_wifi_only">النقل عبر WiFi فقط</string>
+    <string name="settings_keep_screen_on">إبقاء الشاشة مضاءة أثناء النقل</string>
+    <string name="settings_vibration">الاهتزاز عند بدء النقل</string>
+    <string name="settings_theme">مظهر الواجهة</string>
+    <string name="settings_theme_cyber">سيبراني داكن</string>
+    <string name="settings_theme_neon">نيون أزرق</string>
+    <string name="settings_theme_stealth">تخفٍّ تام</string>
+    <string name="settings_language">اللغة</string>
+    <string name="settings_language_ar">العربية</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_reset">استعادة الإعدادات الافتراضية</string>
+    <string name="settings_reset_confirm">هل تريد استعادة كل الإعدادات الافتراضية؟</string>
+    <string name="settings_reset_done">تمت الاستعادة</string>
+    <string name="settings_saved">تم الحفظ</string>
+
+    <!-- ============ تنظيف التخزين ============ -->
+    <string name="cleaner_title">تنظيف التخزين</string>
+    <string name="cleaner_scan">فحص التخزين</string>
+    <string name="cleaner_scanning">جارٍ الفحص…</string>
+    <string name="cleaner_temp_files">الملفات المؤقتة</string>
+    <string name="cleaner_empty_dirs">مجلدات فارغة</string>
+    <string name="cleaner_duplicates">ملفات مكررة</string>
+    <string name="cleaner_large_files">ملفات كبيرة</string>
+    <string name="cleaner_reclaimable">قابل للتحرير: %1$s</string>
+    <string name="cleaner_clean_now">تنظيف الآن</string>
+    <string name="cleaner_confirm">سيتم حذف العناصر المحددة نهائياً. متابعة؟</string>
+    <string name="cleaner_done">تم تحرير %1$s</string>
+    <string name="cleaner_nothing">لا يوجد ما يستحق التنظيف — جهازك مرتب</string>
+    <string name="cleaner_analyzing">%1$d%%</string>
+
+    <!-- ============ أخطاء عامة ============ -->
+    <string name="error_generic">حدث خطأ غير متوقع</string>
+    <string name="error_no_storage">لا توجد مساحة كافية في الجهاز</string>
+    <string name="error_no_network">لا يوجد اتصال شبكة</string>
+    <string name="error_timeout">انتهت مهلة الاتصال</string>
+    <string name="error_peer_disconnected">انقطع اتصال الجهاز الآخر</string>
+    <string name="error_file_not_found">الملف غير موجود</string>
+    <string name="error_permission">صلاحية غير كافية</string>
+    <string name="error_port_busy">المنفذ مستخدم — جرّب منفذاً آخر</string>
+
+    <!-- ============ أفعال عامة ============ -->
+    <string name="action_ok">حسناً</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_confirm">تأكيد</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_close">إغلاق</string>
+    <string name="action_retry">إعادة المحاولة</string>
+    <string name="action_back">رجوع</string>
+    <string name="action_next">التالي</string>
+    <string name="action_share">مشاركة</string>
+    <string name="action_copy">نسخ</string>
+    <string name="action_copied">تم النسخ</string>
+    <string name="action_open">فتح</string>
+    <string name="action_apply">تطبيق</string>
+    <string name="action_done">تم</string>
+    <string name="action_skip">تخطّي</string>
+    <string name="action_send">إرسال</string>
+    <string name="action_receive">استقبال</string>
+    <string name="action_add">إضافة</string>
+    <string name="action_edit">تعديل</string>
+
+    <!-- ============ وصف إمكانية الوصول ============ -->
+    <string name="a11y_back">رجوع</string>
+    <string name="a11y_more">خيارات إضافية</string>
+    <string name="a11y_file_icon">أيقونة ملف</string>
+    <string name="a11y_select_file">تحديد الملف</string>
+    <string name="a11y_progress">شريط تقدم النقل</string>
+    <string name="a11y_qr_code">رمز QR للاتصال</string>
+    <string name="a11y_transfer_progress">تقدم النقل %1$d بالمئة</string>
+
+    <!-- ============ وحدات القياس ============ -->
+    <string name="unit_bytes">بايت</string>
+    <string name="unit_kb">ك.ب</string>
+    <string name="unit_mb">م.ب</string>
+    <string name="unit_gb">ج.ب</string>
+    <string name="unit_second">ث</string>
+    <string name="unit_minute">د</string>
+    <string name="unit_hour">س</string>
+    <string name="unit_forever">∞</string>
+
+    <!-- ============ إضافات النواة والشبكة ============ -->
+    <string name="perm_required_title">صلاحيات مطلوبة</string>
+    <string name="perm_required_body">يمنح هذا التطبيق الوصول ليعمل بكامل سرعته. كل شيء يبقى على جهازك.</string>
+    <string name="perm_grant">منح الصلاحيات</string>
+    <string name="perm_later">لاحقاً</string>
+    <string name="perm_notifications">الإشعارات</string>
+    <string name="perm_nearby">الأجهزة القريبة</string>
+    <string name="perm_storage_label">الملفات والوسائط</string>
+    <string name="perm_contacts">جهات الاتصال</string>
+    <string name="perm_sms">الرسائل النصية</string>
+    <string name="perm_camera">الكاميرا (لمسح QR)</string>
+    <string name="perm_all_files_body">لمتصفح كل مجلدات الذاكرة، امنح التطبيق «الوصول لكل الملفات» من إعدادات النظام.</string>
+    <string name="net_local_ip">عنوان IPv4 المحلي</string>
+    <string name="net_port">المنفذ</string>
+    <string name="net_wifi_required">شغّل WiFi للاستفادة من السرعة القصوى</string>
+    <string name="group_prefix">جلسة</string>
+    <string name="group_copy_code">نسخ الرمز</string>
+    <string name="group_code_copied">تم نسخ رمز الجلسة</string>
+    <string name="group_enter_name">اكتب اسم المجموعة أولاً</string>
+    <string name="group_host_ip">عنوان المضيف: %1$s</string>
+    <string name="group_scan_to_join">امسح الرمز من جهاز المضيف للانضمام</string>
+    <string name="hub_open_group">المجموعة</string>
+    <string name="clone_pick_device">اختر الجهاز الهدف</string>
+    <string name="clone_searching">جارٍ البحث عن جهاز مستهدف…</string>
+    <string name="clone_started">بدأت جلسة النسخ</string>
+    <string name="shake_waiting">بانتظار حركة…</string>
+    <string name="shake_hold_still">أمسك الجهاز ثم حرّكه</string>
+    <string name="diagnose_running">جارٍ الفحص…</string>
+    <string name="wifi_unknown">غير معروفة</string>
+    <string name="date_today">اليوم</string>
+    <string name="date_yesterday">أمس</string>
+    <string name="sort_applied">تم تغيير الترتيب</string>
+    <string name="file_folder">مجلد</string>
+    <string name="file_folder_count">%1$s</string>
+    <string name="file_apk">حزمة تطبيق</string>
+    <string name="file_video">فيديو</string>
+    <string name="file_image">صورة</string>
+    <string name="file_audio">صوت</string>
+    <string name="file_document">مستند</string>
+    <string name="file_unknown">ملف</string>
+    <string name="file_opened_with">فتح باستخدام</string>
+    <string name="file_share_sheet">مشاركة الملف</string>
+    <string name="file_info">تفاصيل الملف</string>
+    <string name="file_deleted">تم حذف الملف</string>
+    <string name="transfer_starting">جارٍ بدء النقل…</string>
+    <string name="transfer_peer_found">تم العثور على جهاز: %1$s</string>
+    <string name="transfer_no_peer">لا يوجد جهاز متصل</string>
+    <string name="transfer_files_queued">تم إضافة %1$d ملف إلى قائمة النقل</string>
+    <string name="transfer_hub_action">اختر ملفاً من تبويب الملفات أولاً</string>
+    <string name="splash_permission_needed">يمكنك المنح لاحقاً من تبويب «أنا»</string>
+    <string name="a11y_tile">%1$s — %2$s</string>
+</resources>

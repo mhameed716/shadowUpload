@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- خلفية شاشة البداية: توهج بنفسجي/سماوي مركزي -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:centerX="0.5"
+                android:centerY="0.35"
+                android:endColor="@color/shadow_black"
+                android:gradientRadius="620"
+                android:startColor="#12283A"
+                android:type="radial" />
+        </shape>
+    </item>
+</layer-list>

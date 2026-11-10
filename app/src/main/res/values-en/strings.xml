@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- احتياطي إنجليزي في حال عدم إمكانية تعريب النظام -->
+<resources>
+    <string name="nav_files">Files</string>
+    <string name="nav_me">Me</string>
+    <string name="nav_transfer_hub">Transfer Hub</string>
+</resources>

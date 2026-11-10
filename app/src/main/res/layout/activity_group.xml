@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- شاشة إنشاء مجموعة / الانضمام لمجموعة -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_app_gradient"
+    android:layoutDirection="rtl">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/space_l">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/a11y_back"
+                android:src="@drawable/ic_back" />
+
+            <TextView
+                android:id="@+id/tvGroupTitle"
+                style="@style/Text.ShadowUpload.Headline"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/space_s"
+                android:layout_weight="1"
+                android:text="@string/group_create_title" />
+        </LinearLayout>
+
+        <!-- اسم المجموعة (وضع الإنشاء) -->
+        <LinearLayout
+            android:id="@+id/boxGroupName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_l"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/Text.ShadowUpload.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/group_name_label" />
+
+            <EditText
+                android:id="@+id/etGroupName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs"
+                android:background="@drawable/bg_search_field"
+                android:hint="@string/group_name_hint"
+                android:inputType="text"
+                android:maxLines="1"
+                android:padding="@dimen/space_m"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_tertiary"
+                android:textSize="@dimen/text_body" />
+        </LinearLayout>
+
+        <!-- رمز الجلسة -->
+        <TextView
+            android:id="@+id/tvCodeLabel"
+            style="@style/Text.ShadowUpload.Caption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_l"
+            android:text="@string/group_code_label" />
+
+        <EditText
+            android:id="@+id/etGroupCode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xs"
+            android:background="@drawable/bg_code_chip"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:hint="@string/group_code_hint"
+            android:inputType="number"
+            android:letterSpacing="0.4"
+            android:maxLength="6"
+            android:padding="@dimen/space_m"
+            android:textColor="@color/neon_cyan"
+            android:textColorHint="@color/text_tertiary"
+            android:textSize="@dimen/text_headline" />
+
+        <!-- حالة الاستضافة -->
+        <TextView
+            android:id="@+id/tvHostingState"
+            style="@style/Text.ShadowUpload.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_m"
+            android:gravity="center"
+            android:text="@string/group_waiting_members"
+            android:textColor="@color/neon_lime"
+            android:visibility="gone" />
+
+        <!-- قائمة الأعضاء -->
+        <TextView
+            android:id="@+id/tvMembersTitle"
+            style="@style/Text.ShadowUpload.Title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_l"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerMembers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_s"
+            android:nestedScrollingEnabled="false"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPrimaryAction"
+            style="@style/Widget.ShadowUpload.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xl"
+            android:text="@string/group_start_hosting" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSecondaryAction"
+            style="@style/Widget.ShadowUpload.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_s"
+            android:text="@string/group_leave"
+            android:visibility="gone" />
+
+        <TextView
+            style="@style/Text.ShadowUpload.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_l"
+            android:layout_marginBottom="@dimen/space_xl"
+            android:gravity="center"
+            android:text="@string/wifi_same_network" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

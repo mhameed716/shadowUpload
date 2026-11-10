@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ============ لوحة الألوان السيبرانية الداكنة ============ -->
+    <color name="shadow_black">#05060A</color>
+    <color name="shadow_surface">#0B0E16</color>
+    <color name="shadow_surface_high">#121724</color>
+    <color name="shadow_surface_elevated">#182032</color>
+    <color name="shadow_outline">#23304A</color>
+
+    <color name="neon_cyan">#00F0FF</color>
+    <color name="neon_cyan_dim">#0A6E77</color>
+    <color name="neon_magenta">#FF2E9A</color>
+    <color name="neon_violet">#8B5CF6</color>
+    <color name="neon_lime">#A3FF12</color>
+    <color name="neon_amber">#FFB020</color>
+    <color name="neon_red">#FF3B5C</color>
+
+    <color name="text_primary">#EAF6FF</color>
+    <color name="text_secondary">#93A4C0</color>
+    <color name="text_tertiary">#5D6B84</color>
+
+    <color name="ripple_cyan">#3300F0FF</color>
+    <color name="ripple_white">#22FFFFFF</color>
+    <color name="scrim">#CC05060A</color>
+    <color name="transparent">#00000000</color>
+
+    <color name="banner_ok">#123B2E</color>
+    <color name="banner_warn">#3B2A12</color>
+    <color name="banner_err">#3B1219</color>
+</resources>

@@ -1,0 +1,20 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- قناع الظل -->
+    <path
+        android:fillColor="#00F0FF"
+        android:pathData="M54,28c-9,0 -16,7 -16,16 0,2 0.4,4 1.1,5.8C33.6,52.6 30,58.9 30,66c0,3 0.5,5.9 1.4,8.6C37,71 44.3,70.4 54,70.4s17,0.6 22.6,4.2c0.9,-2.7 1.4,-5.6 1.4,-8.6 0,-7.1 -3.6,-13.4 -9.1,-16.2 0.7,-1.8 1.1,-3.8 1.1,-5.8 0,-9 -7,-16 -16,-16z" />
+    <path
+        android:fillColor="#05060A"
+        android:pathData="M45,42m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="#05060A"
+        android:pathData="M63,42m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <!-- سهم الرفع -->
+    <path
+        android:fillColor="#FF2E9A"
+        android:pathData="M54,74l-11,10h7v12h8V84h7z" />
+</vector>

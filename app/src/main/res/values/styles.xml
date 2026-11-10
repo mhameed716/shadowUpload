@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ============ الثيم الأساسي: سيبراني داكن ============ -->
+    <style name="Theme.ShadowUpload" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/neon_cyan</item>
+        <item name="colorOnPrimary">@color/shadow_black</item>
+        <item name="colorPrimaryContainer">@color/shadow_surface_high</item>
+        <item name="colorOnPrimaryContainer">@color/neon_cyan</item>
+        <item name="colorSecondary">@color/neon_magenta</item>
+        <item name="colorOnSecondary">@color/shadow_black</item>
+        <item name="colorTertiary">@color/neon_violet</item>
+        <item name="colorSurface">@color/shadow_surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/shadow_surface_high</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/shadow_outline</item>
+        <item name="colorError">@color/neon_red</item>
+        <item name="android:colorBackground">@color/shadow_black</item>
+        <item name="android:windowBackground">@color/shadow_black</item>
+        <item name="android:statusBarColor">@color/shadow_black</item>
+        <item name="android:navigationBarColor">@color/shadow_black</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="materialAlertDialogTheme">@style/Theme.ShadowUpload.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/Theme.ShadowUpload.BottomSheet</item>
+        <item name="materialCardViewStyle">@style/Widget.ShadowUpload.Card</item>
+        <item name="materialButtonStyle">@style/Widget.ShadowUpload.Button</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
+    </style>
+
+    <!-- ============ شاشة البداية ============ -->
+    <style name="Theme.ShadowUpload.Splash" parent="Theme.ShadowUpload">
+        <item name="android:windowBackground">@drawable/bg_splash</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
+
+    <!-- ============ الحوارات ============ -->
+    <style name="Theme.ShadowUpload.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/shadow_surface_high</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorPrimary">@color/neon_cyan</item>
+    </style>
+
+    <style name="Theme.ShadowUpload.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.ShadowUpload.BottomSheet</item>
+        <item name="android:navigationBarColor">@color/shadow_surface</item>
+    </style>
+
+    <style name="Widget.ShadowUpload.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/shadow_surface</item>
+        <item name="shapeAppearance">@style/Shape.ShadowUpload.Sheet</item>
+    </style>
+
+    <!-- ============ بطاقات ============ -->
+    <style name="Widget.ShadowUpload.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/shadow_surface</item>
+        <item name="cardCornerRadius">@dimen/radius_m</item>
+        <item name="cardElevation">@dimen/card_elevation</item>
+        <item name="strokeColor">@color/shadow_outline</item>
+        <item name="strokeWidth">@dimen/stroke_hairline</item>
+        <item name="rippleColor">@color/ripple_cyan</item>
+    </style>
+
+    <!-- ============ أزرار ============ -->
+    <style name="Widget.ShadowUpload.Button" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/neon_cyan</item>
+        <item name="android:textColor">@color/shadow_black</item>
+        <item name="cornerRadius">@dimen/radius_pill</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.ShadowUpload.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/neon_cyan_dim</item>
+        <item name="android:textColor">@color/neon_cyan</item>
+        <item name="cornerRadius">@dimen/radius_pill</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="Widget.ShadowUpload.Button.Ghost" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/neon_cyan</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- ============ النصوص ============ -->
+    <style name="Text.ShadowUpload.Display" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">@dimen/text_display</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Text.ShadowUpload.Headline" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">@dimen/text_headline</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Text.ShadowUpload.Title" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">@dimen/text_title</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Text.ShadowUpload.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">@dimen/text_body</item>
+    </style>
+
+    <style name="Text.ShadowUpload.Caption" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:textSize">@dimen/text_caption</item>
+    </style>
+
+    <style name="Text.ShadowUpload.Mono" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textColor">@color/neon_cyan</item>
+        <item name="android:textSize">@dimen/text_small</item>
+    </style>
+
+    <!-- ============ أشكال ============ -->
+    <style name="Shape.ShadowUpload.Sheet" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">@dimen/radius_l</item>
+        <item name="cornerSizeTopRight">@dimen/radius_l</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <!-- ============ أشرطة عنوان فرعية ============ -->
+    <style name="Theme.ShadowUpload.Transparent" parent="Theme.ShadowUpload">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

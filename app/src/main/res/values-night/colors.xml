@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- الوضع الليلي مطابق للوضع النهاري: التطبيق داكن بطبيعته -->
+    <color name="shadow_black">#05060A</color>
+    <color name="shadow_surface">#0B0E16</color>
+    <color name="text_primary">#EAF6FF</color>
+</resources>

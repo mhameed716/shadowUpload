@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ============================================================
+     الشاشة الرئيسية لـ shadowUpload
+     شريط سفلي من 3 عناصر فقط: الملفات + زر عائم مركزي + أنا
+     ============================================================ -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="rtl"
+    android:background="@drawable/bg_app_gradient"
+    tools:context=".ui.MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- ===== الشريط العلوي ===== -->
+        <LinearLayout
+            android:id="@+id/topBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/space_l"
+            android:paddingTop="@dimen/space_m"
+            android:paddingEnd="@dimen/space_l"
+            android:paddingBottom="@dimen/space_s">
+
+            <ImageView
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/ic_launcher_foreground" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/space_m"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvTopTitle"
+                    style="@style/Text.ShadowUpload.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/files_title" />
+
+                <TextView
+                    android:id="@+id/tvTopSubtitle"
+                    style="@style/Text.ShadowUpload.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_tagline" />
+            </LinearLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnTopAction"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                app:cardBackgroundColor="@color/shadow_surface_high"
+                app:cardCornerRadius="20dp"
+                app:strokeColor="@color/shadow_outline"
+                app:strokeWidth="1dp">
+
+                <ImageView
+                    android:id="@+id/ivTopAction"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/a11y_more"
+                    android:src="@drawable/ic_more" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- ===== حاوية الشاشات ===== -->
+        <FrameLayout
+            android:id="@+id/screenContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <!-- ===== شريط التنقل السفلي (3 عناصر) ===== -->
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_nav_height"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_bottom_nav"
+        android:elevation="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/space_s"
+        android:paddingEnd="@dimen/space_s">
+
+        <!-- 1) الملفات -->
+        <LinearLayout
+            android:id="@+id/navFiles"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/ivNavFiles"
+                android:layout_width="@dimen/icon_size"
+                android:layout_height="@dimen/icon_size"
+                android:contentDescription="@string/nav_files"
+                android:src="@drawable/ic_files" />
+
+            <TextView
+                android:id="@+id/tvNavFiles"
+                style="@style/Text.ShadowUpload.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/nav_files"
+                android:textColor="@color/neon_cyan" />
+        </LinearLayout>
+
+        <!-- 2) فجوة للزر العائم المركزي -->
+        <Space
+            android:layout_width="@dimen/fab_size"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/space_l"
+            android:layout_marginEnd="@dimen/space_l" />
+
+        <!-- 3) أنا -->
+        <LinearLayout
+            android:id="@+id/navMe"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/ivNavMe"
+                android:layout_width="@dimen/icon_size"
+                android:layout_height="@dimen/icon_size"
+                android:contentDescription="@string/nav_me"
+                android:src="@drawable/ic_me" />
+
+            <TextView
+                android:id="@+id/tvNavMe"
+                style="@style/Text.ShadowUpload.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/nav_me"
+                android:textColor="@color/text_tertiary" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ===== الزر العائم المركزي: مركز النقل ===== -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabTransferHub"
+        android:layout_width="@dimen/fab_size"
+        android:layout_height="@dimen/fab_size"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="@dimen/space_xl"
+        android:contentDescription="@string/nav_transfer_hub_desc"
+        android:src="@drawable/ic_hub"
+        app:backgroundTint="@color/neon_cyan"
+        app:borderWidth="0dp"
+        app:elevation="8dp"
+        app:fabCustomSize="@dimen/fab_size"
+        app:maxImageSize="26dp"
+        app:rippleColor="@color/ripple_white"
+        app:tint="@color/shadow_black" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

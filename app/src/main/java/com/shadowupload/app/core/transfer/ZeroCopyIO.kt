@@ -2,7 +2,6 @@ package com.shadowupload.app.core.transfer
 
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import android.provider.OpenableColumns
 import java.io.File
 import java.io.FileInputStream
@@ -11,7 +10,6 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.channels.WritableByteChannel
-import java.nio.file.StandardOpenOption
 
 /**
  * نواة الإدخال/الإخراج عالية الأداء.
@@ -290,35 +288,6 @@ object ZeroCopyIO {
     /** قراءة بيانات في مخزن مؤقت مباشر (لاستخدامها عند التحقق أو الضغط) */
     fun allocateBuffer(size: Int): ByteBuffer =
         ByteBuffer.allocateDirect(size.coerceIn(64 * 1024, 8 * 1024 * 1024))
-
-    /** هل يدعم النظام مسار java.nio.file الكامل؟ (أندرويد 8+) */
-    val hasFullNioFile: Boolean
-        get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-
-    /** فتح قناة كتابة بأسلوبين حسب الإصدار */
-    fun openWriteChannel(file: File, append: Boolean): WritableByteChannel {
-        file.parentFile?.mkdirs()
-        return if (hasFullNioFile) {
-            try {
-                val options = if (append) {
-                    arrayOf(StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND)
-                } else {
-                    arrayOf(StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
-                }
-                java.nio.channels.FileChannel.open(file.toPath(), *options)
-            } catch (_: Throwable) {
-                fallbackChannel(file, append)
-            }
-        } else {
-            fallbackChannel(file, append)
-        }
-    }
-
-    private fun fallbackChannel(file: File, append: Boolean): WritableByteChannel {
-        val raf = java.io.RandomAccessFile(file, if (append) "rw" else "rw")
-        if (!append) raf.setLength(0L) else raf.seek(raf.length())
-        return raf.channel
-    }
 
     /** اسم وحجم ملف من Uri عبر ContentResolver (مع بدائل للأجهزة القديمة) */
     fun queryFileNameAndSize(context: Context, uri: Uri): Pair<String, Long> {

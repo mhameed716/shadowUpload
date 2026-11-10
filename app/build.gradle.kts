@@ -17,22 +17,14 @@ android {
         versionName = "1.0.0"
 
         // دعم كامل لـ RTL (العربية) دون الحاجة لملفات موارد منفصلة
-        resConfigs += listOf("ar", "en")
+        resourceConfigurations.addAll(listOf("ar", "en"))
         vectorDrawables.useSupportLibrary = true
 
         // أجهزة API 21–23 قد تحتاج multidex بلا تصغير:
         // نُبقي التصغير مؤجلاً للنسخة النهائية، والمكتبات قليلة هنا
         multiDexEnabled = true
-    }
-
-    signingConfigs {
-        // التوقيع للتجربة؛ في الإصدار النهائي تُستخدم مفاتيح خاصة خارج المستودع
-        create("debugLocal") {
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
+        // منع أخطاء الموارد غير المستخدمة في نسخة التصحيح
+        vectorDrawables.generatedDensities = setOf("mdpi", "hdpi", "xhdpi", "xxhdpi")
     }
 
     buildTypes {

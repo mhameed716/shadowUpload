@@ -37,14 +37,7 @@ class CloneActivity : BaseActivity() {
         buildOptions()
         estimateSize()
 
-        binding.btnStartClone.setOnClickListener {
-            val chosen = selections.filterValues { it.cbCloneOption.isChecked }.keys
-            if (chosen.isEmpty()) {
-                UiUtils.snack(binding.root, R.string.clone_nothing_selected)
-                return@setOnClickListener
-            }
-            UiUtils.snack(binding.root, R.string.clone_started)
-        }
+        binding.btnStartClone.setOnClickListener { startClone() }
     }
 
     /** بناء صفوف الخيارات برمجياً لتفادي تكرار XML */
@@ -72,6 +65,124 @@ class CloneActivity : BaseActivity() {
             option.cbCloneOption.setOnCheckedChangeListener { _, _ -> estimateSize() }
             binding.cloneItems.addView(option.root)
             selections[item] = option
+        }
+    }
+
+    /**
+     * بدء النسخ: تصدير العناصر المختارة إلى ملفات، البحث عن الجهاز الهدف
+     * على الشبكة، ثم الإرسال بمحرك النقل نفسه.
+     */
+    private fun startClone() {
+        val chosen = selections.filterValues { it.cbCloneOption.isChecked }.keys
+        if (chosen.isEmpty()) {
+            UiUtils.snack(binding.root, R.string.clone_nothing_selected)
+            return
+        }
+        binding.btnStartClone.isEnabled = false
+        binding.btnStartClone.setText(R.string.clone_searching)
+
+        val app = application as com.shadowupload.app.ShadowUploadApp
+        lifecycleScope.launch {
+            // 1) جمع الوسائط المختارة
+            val media = withContext(Dispatchers.IO) {
+                val repository = com.shadowupload.app.data.repo.MediaRepository(this@CloneActivity)
+                buildList {
+                    if (CloneItem.PHOTOS in chosen) {
+                        addAll(repository.loadCategory(com.shadowupload.app.data.model.FileCategory.PHOTOS))
+                    }
+                    if (CloneItem.VIDEOS in chosen) {
+                        addAll(repository.loadCategory(com.shadowupload.app.data.model.FileCategory.VIDEOS))
+                    }
+                    if (CloneItem.AUDIO in chosen) {
+                        addAll(repository.loadCategory(com.shadowupload.app.data.model.FileCategory.AUDIO))
+                    }
+                    if (CloneItem.DOCUMENTS in chosen) {
+                        addAll(repository.loadCategory(com.shadowupload.app.data.model.FileCategory.DOCUMENTS))
+                    }
+                }
+            }
+
+            // 2) تصدير العناصر المنطقية (جهات اتصال/رسائل/مكالمات/تطبيقات/إعدادات)
+            val exporter = com.shadowupload.app.core.clone.CloneExporter(this@CloneActivity)
+            val export = withContext(Dispatchers.IO) { exporter.export(chosen, media) }
+            if (_binding == null) return@launch
+
+            if (export.files.isEmpty()) {
+                binding.btnStartClone.isEnabled = true
+                binding.btnStartClone.setText(R.string.clone_start)
+                UiUtils.snack(binding.root, R.string.clone_nothing_selected)
+                return@launch
+            }
+            binding.tvEstimatedSize.text = getString(
+                R.string.clone_estimated_size,
+                FormatUtils.formatSize(export.totalBytes)
+            ) + " • " + export.summary
+
+            // 3) البحث عن جهاز هدف على الشبكة المحلية
+            binding.btnStartClone.setText(R.string.clone_searching)
+            val peer = withContext(Dispatchers.IO) {
+                com.shadowupload.app.ui.transfer.SendCoordinator.resolvePeer(
+                    this@CloneActivity,
+                    app.preferences.receivePort
+                )
+            }
+            if (_binding == null) return@launch
+            if (peer == null) {
+                binding.btnStartClone.isEnabled = true
+                binding.btnStartClone.setText(R.string.clone_start)
+                UiUtils.snack(binding.root, R.string.shake_not_found)
+                return@launch
+            }
+
+            // 4) الإرسال الفعلي على خيط الخلفية (المستمع يستدعى من خيط النقل)
+            UiUtils.snack(binding.root, R.string.clone_started)
+            binding.btnStartClone.setText(R.string.transfer_title)
+            val result = withContext(Dispatchers.IO) {
+                var outcome: com.shadowupload.app.core.transfer.TransferResult? = null
+                com.shadowupload.app.ui.transfer.SendCoordinator.sendTo(
+                    context = this@CloneActivity,
+                    host = peer.ip,
+                    port = peer.port,
+                    items = export.files,
+                    deviceId = app.preferences.deviceId,
+                    deviceName = app.preferences.deviceName,
+                    listener = object : com.shadowupload.app.core.transfer.TransferListener {
+                        override fun onProgress(progress: com.shadowupload.app.data.model.TransferProgress) {
+                            val text = FormatUtils.formatPercent(progress.percent) + " • " +
+                                FormatUtils.formatSpeed(progress.bytesPerSecond)
+                            runOnUiThread {
+                                if (_binding != null) binding.tvEstimatedSize.text = text
+                            }
+                        }
+
+                        override fun onFinished(done: com.shadowupload.app.core.transfer.TransferResult) {
+                            outcome = done
+                        }
+                    }
+                )
+                outcome
+            }
+            if (_binding == null) return@launch
+            binding.btnStartClone.isEnabled = true
+            binding.btnStartClone.setText(R.string.clone_start)
+            val finished = result
+            if (finished != null) {
+                UiUtils.snack(
+                    binding.root,
+                    if (finished.success) getString(R.string.transfer_done)
+                    else getString(R.string.transfer_failed) + " — " + finished.message
+                )
+                com.shadowupload.app.ui.transfer.SendCoordinator.persistResult(
+                    scope = lifecycleScope,
+                    repository = app.historyRepository,
+                    result = finished,
+                    peerName = peer.name,
+                    sampleName = export.files.firstOrNull()?.name.orEmpty()
+                )
+            } else {
+                UiUtils.snack(binding.root, R.string.transfer_failed)
+            }
+            withContext(Dispatchers.IO) { exporter.cleanup() }
         }
     }
 

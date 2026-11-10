@@ -77,6 +77,17 @@ class GroupActivity : BaseActivity() {
             return
         }
         hosting = true
+        // بدء خادم الاستقبال فعلياً على المنفذ المحدد
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            !com.shadowupload.app.util.PermissionUtils.isGranted(
+                this, android.Manifest.permission.POST_NOTIFICATIONS
+            )
+        ) {
+            requestPermissions(
+                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATIONS
+            )
+        }
+        com.shadowupload.app.service.TransferService.startReceiving(this)
         binding.tvHostingState.visibility = View.VISIBLE
         binding.tvHostingState.text = getString(
             R.string.group_host_ip,
@@ -89,6 +100,7 @@ class GroupActivity : BaseActivity() {
     }
 
     private fun stopHosting() {
+        if (hosting) com.shadowupload.app.service.TransferService.stop(this)
         hosting = false
         binding.tvHostingState.visibility = View.GONE
         binding.btnSecondaryAction.visibility = View.GONE
@@ -187,9 +199,19 @@ class GroupActivity : BaseActivity() {
             androidx.recyclerview.widget.RecyclerView.ViewHolder(rowBinding.root)
     }
 
+    override fun onStop() {
+        super.onStop()
+        // إيقاف الاستضافة عند مغادرة الشاشة لتفادي خادم معلّق
+        if (isFinishing && hosting) {
+            com.shadowupload.app.service.TransferService.stop(this)
+            hosting = false
+        }
+    }
+
     companion object {
         const val EXTRA_MODE = "mode"
         const val MODE_CREATE = "create"
         const val MODE_JOIN = "join"
+        private const val REQUEST_NOTIFICATIONS = 2077
     }
 }
